@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Advisor - Profitify</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+         :root {
+            --primary: #8B5FBF;
+            --secondary: #4ECDC4;
+            --accent: #FF9E64;
+            --light: #F7F9FC;
+            --dark: #2D3748;
+            --pastel-blue: #A8D8EA;
+            --pastel-green: #C7F0DB;
+            --pastel-yellow: #FFEAA7;
+            --pastel-purple: #D6BCFA;
+            --sky-blue: #87CEEB;
+            --vibrant-yellow: #FFD166;
+            --soft-purple: #C8B6FF;
+            --text: #4A5568;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            --glass: rgba(255, 255, 255, 0.25);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        /* Header & Navigation */
+        
+        header {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            position: fixed;
+            width: 100%;
+            top: 15px;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+            margin: 0 20px;
+            width: calc(100% - 40px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-left: 30px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+        
+        .nav-links a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background-color: var(--primary);
+            transition: width 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-links a:hover:after {
+            width: 100%;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #7a4ba8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 95, 191, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--vibrant-yellow);
+            color: #5a4a00;
+        }
+        
+        .btn-secondary:hover {
+            background: #ffc94d;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 209, 102, 0.3);
+        }
+        
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-accent:hover {
+            background: #ff8c42;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 158, 100, 0.3);
+        }
+        /* AI Advisor Header */
+        
+        .advisor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .back-btn {
+            background: var(--card-bg);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: var(--text);
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            background: var(--primary);
+            color: white;
+        }
+        
+        .advisor-header h1 {
+            font-size: 2rem;
+            color: var(--dark);
+            flex: 1;
+            text-align: center;
+        }
+        
+        .settings-btn {
+            background: var(--card-bg);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: var(--text);
+        }
+        
+        .settings-btn:hover {
+            transform: translateY(-2px);
+            background: var(--primary);
+            color: white;
+        }
+        /* Alert Cards Section */
+        
+        .alerts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .alert-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        
+        .alert-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .alert-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+        }
+        
+        .trend-alert:before {
+            background: var(--pastel-purple);
+        }
+        
+        .waste-alert:before {
+            background: var(--accent);
+        }
+        
+        .recoder-alert:before {
+            background: var(--pastel-blue);
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .alert-title {
+            font-size: 1.3rem;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+        
+        .alert-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            margin-left: 15px;
+        }
+        
+        .trend-icon {
+            background: var(--pastel-purple);
+            color: var(--primary);
+        }
+        
+        .waste-icon {
+            background: rgba(255, 158, 100, 0.2);
+            color: var(--accent);
+        }
+        
+        .recoder-icon {
+            background: var(--pastel-blue);
+            color: #2a7a9c;
+        }
+        
+        .alert-content {
+            margin-bottom: 20px;
+        }
+        
+        .alert-description {
+            color: var(--text);
+            margin-bottom: 15px;
+        }
+        
+        .alert-products {
+            list-style: none;
+            margin-top: 10px;
+        }
+        
+        .alert-product {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .alert-product:last-child {
+            border-bottom: none;
+        }
+        
+        .product-name {
+            font-weight: 500;
+        }
+        
+        .product-metric {
+            font-weight: 600;
+        }
+        
+        .positive {
+            color: #4CAF50;
+        }
+        
+        .negative {
+            color: #F44336;
+        }
+        
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 0.9rem;
+        }
+        
+        .primary-action {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .primary-action:hover {
+            background: #7a4ba8;
+            transform: translateY(-2px);
+        }
+        
+        .secondary-action {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .secondary-action:hover {
+            background: rgba(139, 95, 191, 0.1);
+            transform: translateY(-2px);
+        }
+        /* Purchase Order Modal */
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text);
+            transition: color 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: var(--primary);
+        }
+        
+        .po-items {
+            margin-bottom: 25px;
+        }
+        
+        .po-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .po-item:last-child {
+            border-bottom: none;
+        }
+        
+        .item-details {
+            flex: 1;
+        }
+        
+        .item-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .item-info {
+            font-size: 0.9rem;
+            color: var(--text);
+            margin-top: 5px;
+        }
+        
+        .item-quantity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .quantity-btn:hover {
+            background: #7a4ba8;
+        }
+        
+        .quantity-value {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .whatsapp-btn {
+            background: #25D366;
+            color: white;
+        }
+        
+        .whatsapp-btn:hover {
+            background: #128C7E;
+            transform: translateY(-2px);
+        }
+        /* Footer */
+        
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 60px 0 30px;
+            border-radius: 40px 40px 0 0;
+            margin-top: 60px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-column h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: #CBD5E0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #4A5568;
+            color: #CBD5E0;
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .social-icons a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .social-icons a:hover {
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+        /* Responsive Design */
+        
+        @media (max-width: 1024px) {
+            .alerts-section {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                top: 10px;
+                border-radius: 15px;
+                margin: 0 15px;
+                width: calc(100% - 30px);
+            }
+            .navbar {
+                flex-direction: column;
+                padding: 15px 0;
+            }
+            .nav-links {
+                margin: 20px 0;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .nav-links li {
+                margin: 0 10px 10px;
+            }
+            .auth-buttons {
+                margin-top: 10px;
+            }
+            .advisor-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .advisor-header h1 {
+                text-align: left;
+            }
+            .alerts-section {
+                grid-template-columns: 1fr;
+            }
+            .alert-header {
+                flex-direction: column;
+            }
+            .alert-icon {
+                align-self: flex-start;
+                margin-top: 10px;
+            }
+            .modal {
+                padding: 20px;
+            }
+            .modal-actions {
+                flex-direction: column;
+            }
+            .modal-actions .btn {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .alert-card {
+                padding: 20px;
+            }
+            .alert-actions {
+                flex-direction: column;
+            }
+            .action-btn {
+                width: 100%;
+                text-align: center;
+            }
+            .po-item {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .item-quantity {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Profitify</span>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#about">About</a></li>
+                    <li><a href="index.html#features">Features</a></li>
+                    <li><a href="finance-tracker.html">Finance</a></li>
+                </ul>
+                <div class="auth-buttons">
+                    <a href="dashboard.html" class="btn btn-primary">Dashboard</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- AI Advisor Content -->
+    <div class="container">
+        <!-- AI Advisor Header -->
+        <div class="advisor-header">
+            <a href="dashboard.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1>AI Business Advisor</h1>
+            <button class="settings-btn">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+
+        <!-- Alert Cards -->
+        <div class="alerts-section">
+            <!-- Trend Alert -->
+            <div class="alert-card trend-alert">
+                <div class="alert-header">
+                    <div>
+                        <h3 class="alert-title">Trend Alerts</h3>
+                        <p class="alert-description">Products with increasing demand patterns</p>
+                    </div>
+                    <div class="alert-icon trend-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="alert-content">
+                    <ul class="alert-products">
+                        <li class="alert-product">
+                            <span class="product-name">Wireless Earbuds</span>
+                            <span class="product-metric positive">+42% sales</span>
+                        </li>
+                        <li class="alert-product">
+                            <span class="product-name">Phone Case - Premium</span>
+                            <span class="product-metric positive">+28% sales</span>
+                        </li>
+                        <li class="alert-product">
+                            <span class="product-name">USB-C Cable</span>
+                            <span class="product-metric positive">+35% sales</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="alert-actions">
+                    <button class="action-btn primary-action add-to-po" data-type="trend">Add to PO</button>
+                    <button class="action-btn secondary-action">Create Discount</button>
+                </div>
+            </div>
+
+            <!-- Waste Alert -->
+            <div class="alert-card waste-alert">
+                <div class="alert-header">
+                    <div>
+                        <h3 class="alert-title">Waste Alerts</h3>
+                        <p class="alert-description">Products approaching expiry or slow-moving</p>
+                    </div>
+                    <div class="alert-icon waste-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+                <div class="alert-content">
+                    <ul class="alert-products">
+                        <li class="alert-product">
+                            <span class="product-name">Protein Bars - Chocolate</span>
+                            <span class="product-metric negative">Expires in 7 days</span>
+                        </li>
+                        <li class="alert-product">
+                            <span class="product-name">Old Model Headphones</span>
+                            <span class="product-metric negative">Slow moving</span>
+                        </li>
+                        <li class="alert-product">
+                            <span class="product-name">Energy Drinks</span>
+                            <span class="product-metric negative">Expires in 14 days</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="alert-actions">
+                    <button class="action-btn primary-action add-to-po" data-type="waste">Add to PO</button>
+                    <button class="action-btn secondary-action">Create Discount</button>
+                </div>
+            </div>
+
+            <!-- Recoder Alert -->
+            <div class="alert-card recoder-alert">
+                <div class="alert-header">
+                    <div>
+                        <h3 class="alert-title">Recoder Alerts</h3>
+                        <p class="alert-description">Products with low stock levels</p>
+                    </div>
+                    <div class="alert-icon recoder-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                </div>
+                <div class="alert-content">
+                    <ul class="alert-products">
+                        <li class="alert-product">
+                            <span class="product-name">Wireless Earbuds</span>
+                            <span class="product-metric negative">Only 3 left</span>
+                        </li>
+                        <li class="alert-product">
+                            <span class="product-name">Phone Case - Premium</span>
+                            <span class="product-metric negative">Only 5 left</span>
+                        </li>
+                        <li class="alert-product">
+                            <span class="product-name">USB-C Cable</span>
+                            <span class="product-metric negative">Only 8 left</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="alert-actions">
+                    <button class="action-btn primary-action add-to-po" data-type="recoder">Add to PO</button>
+                    <button class="action-btn secondary-action">View Details</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Order Modal -->
+    <div class="modal-overlay" id="poModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Purchase Order Review</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="po-items" id="poItems">
+                <!-- Items will be dynamically added here -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="cancelPo">Cancel</button>
+                <button class="btn whatsapp-btn" id="sendWhatsApp">
+                    <i class="fab fa-whatsapp"></i> Send via WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Profitify</h3>
+                    <p>Making inventory management simple and profitable through AI and smart analytics.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">How It Works</a></li>
+                        <li><a href="#">Pricing</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Profitify. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Sample data for alerts
+        const alertData = {
+            trend: [{
+                name: "Wireless Earbuds",
+                metric: "+42% sales",
+                quantity: 1
+            }, {
+                name: "Phone Case - Premium",
+                metric: "+28% sales",
+                quantity: 1
+            }, {
+                name: "USB-C Cable",
+                metric: "+35% sales",
+                quantity: 1
+            }],
+            waste: [{
+                name: "Protein Bars - Chocolate",
+                metric: "Expires in 7 days",
+                quantity: 1
+            }, {
+                name: "Old Model Headphones",
+                metric: "Slow moving",
+                quantity: 1
+            }, {
+                name: "Energy Drinks",
+                metric: "Expires in 14 days",
+                quantity: 1
+            }],
+            recoder: [{
+                name: "Wireless Earbuds",
+                metric: "Only 3 left",
+                quantity: 1
+            }, {
+                name: "Phone Case - Premium",
+                metric: "Only 5 left",
+                quantity: 1
+            }, {
+                name: "USB-C Cable",
+                metric: "Only 8 left",
+                quantity: 1
+            }]
+        };
+
+        // Purchase Order functionality
+        const poModal = document.getElementById('poModal');
+        const poItems = document.getElementById('poItems');
+        const addToPoButtons = document.querySelectorAll('.add-to-po');
+        const closeModal = document.querySelector('.close-modal');
+        const cancelPo = document.getElementById('cancelPo');
+        const sendWhatsApp = document.getElementById('sendWhatsApp');
+
+        let currentPoItems = [];
+
+        // Open PO modal when "Add to PO" is clicked
+        addToPoButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const alertType = this.getAttribute('data-type');
+                currentPoItems = [...alertData[alertType]];
+                renderPoItems();
+                poModal.classList.add('active');
+            });
+        });
+
+        // Render PO items in the modal
+        function renderPoItems() {
+            poItems.innerHTML = '';
+
+            if (currentPoItems.length === 0) {
+                poItems.innerHTML = '<p>No items in purchase order</p>';
+                return;
+            }
+
+            currentPoItems.forEach((item, index) => {
+                const poItem = document.createElement('div');
+                poItem.className = 'po-item';
+                poItem.innerHTML = `
+                    <div class="item-details">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-info">${item.metric}</div>
+                    </div>
+                    <div class="item-quantity">
+                        <button class="quantity-btn minus" data-index="${index}">-</button>
+                        <span class="quantity-value">${item.quantity}</span>
+                        <button class="quantity-btn plus" data-index="${index}">+</button>
+                    </div>
+                `;
+                poItems.appendChild(poItem);
+            });
+
+            // Add event listeners for quantity buttons
+            document.querySelectorAll('.quantity-btn.minus').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    if (currentPoItems[index].quantity > 1) {
+                        currentPoItems[index].quantity--;
+                        renderPoItems();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.quantity-btn.plus').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    currentPoItems[index].quantity++;
+                    renderPoItems();
+                });
+            });
+        }
+
+        // Close modal functions
+        function closePoModal() {
+            poModal.classList.remove('active');
+        }
+
+        closeModal.addEventListener('click', closePoModal);
+        cancelPo.addEventListener('click', closePoModal);
+
+        // Send via WhatsApp
+        sendWhatsApp.addEventListener('click', function() {
+            let message = "Purchase Order:\n\n";
+            currentPoItems.forEach(item => {
+                message += `• ${item.name} - Qty: ${item.quantity}\n`;
+            });
+
+            // In a real app, this would open WhatsApp with the message
+            // For demo, we'll just show an alert
+            alert(`This would send the following message via WhatsApp:\n\n${message}`);
+            closePoModal();
+        });
+
+        // Settings button functionality
+        document.querySelector('.settings-btn').addEventListener('click', function() {
+            alert('Settings would open here in the full implementation');
+        });
+
+        // Close modal when clicking outside
+        poModal.addEventListener('click', function(e) {
+            if (e.target === poModal) {
+                closePoModal();
+            }
+        });
+    </script>
+</body>
+
+</html>
