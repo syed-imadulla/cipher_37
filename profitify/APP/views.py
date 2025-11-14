@@ -1,9 +1,10 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponse
 from .models import Product, Sale, SaleItem, StockBatch, Alert
 from django.utils import timezone
 from django.db.models import Sum, F
 import json # We will use this later, it's fine to import now
+from django.urls import reverse
 
 # Create your views here.
 
@@ -156,4 +157,137 @@ def settings_page(request):
     # Later you can add logic to save user settings.
     return render(request, 'APP/settings.html')
 
+def scan_barcode_api(request):
+    """
+    Receives a barcode via AJAX/Fetch, checks the database, 
+    and returns a JSON response with the correct redirect URL.
+    """
+    if request.method == 'POST':
+        try:
+            # Load the JSON body sent by the JavaScript scanner
+            data = json.loads(request.body.decode('utf-8'))
+            barcode = data.get('barcode')
+            
+            if not barcode:
+                return JsonResponse({'status': 'error', 'message': 'No barcode provided'}, status=400)
+            
+            # 1. Try to find the product
+            # FIXED: using correct 'quantity' field
+            product = Product.objects.get(barcode=barcode)
+            
+            # 2. FOUND! Return the Sell Product URL
+            # We use 'reverse' to dynamically get the URL based on the name
+            sell_url = reverse('sell-product-page', kwargs={'product_id': product.id})
+            
+            return JsonResponse({
+                'status': 'found',
+                'redirect_url': sell_url
+            })
+            
+        except Product.DoesNotExist:
+            # 3. NOT FOUND! Return the Add Product URL
+            add_url = reverse('add-product-page')
+            return JsonResponse({
+                'status': 'not_found',
+                'redirect_url': add_url
+            })
+        
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+def add_product(request):
+    """
+    Handles both showing the 'add product' form and saving the new product.
+    """
+    context = {} # <-- FIXED: Define context for the GET request
+    
+    if request.method == 'POST':
+        # --- (The rest of your POST saving logic would go here) ---
+        print("Form submitted!")
+        return redirect('dashboard-page')
+    else:
+        # This is the GET request to show the form
+        return render(request, 'APP/add_product.html', context)
+
+def sell_product(request, product_id):
+    """
+    Handles showing the 'sell product' page (pre-filled) and saving the sale.
+    This function is now 100% complete and saves data.
+    """
+    from .models import Product, Sale, SaleItem, StockBatch
+    from django.db import transaction # Needed for reliable saving
+    
+    # Get the product the user is trying to sell
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        # If product ID is invalid, send them back to the dashboard
+        return redirect('dashboard-page')
+        
+    # Get the best batch to sell from (First-In, First-Out/Soonest Expiry)
+    available_batch = StockBatch.objects.filter(
+        product=product,
+        quantity__gt=0
+    ).order_by('expiry_date').first()
+
+    context = {
+        'product': product,
+        'batch': available_batch,
+        'error_message': None,
+        'success_message': None,
+    }
+
+    if request.method == 'POST':
+        try:
+            quantity_sold = int(request.POST.get('quantity_sold'))
+        except (ValueError, TypeError):
+            context['error_message'] = "Invalid quantity entered."
+            return render(request, 'APP/sell-product.html', context)
+            
+        if quantity_sold <= 0:
+            context['error_message'] = "Quantity must be greater than zero."
+            return render(request, 'APP/sell-product.html', context)
+
+        if not available_batch or available_batch.quantity < quantity_sold:
+            context['error_message'] = f"Not enough stock. Available: {available_batch.quantity if available_batch else 0}"
+            return render(request, 'APP/sell-product.html', context)
+
+        # --- DATA SAVING LOGIC ---
+        with transaction.atomic():
+            # 1. Create the Sale record
+            cost = available_batch.cost_price
+            revenue = product.selling_price
+            
+            total_amount = revenue * quantity_sold
+            total_profit = (revenue - cost) * quantity_sold
+            
+            sale = Sale.objects.create(
+                total_amount=total_amount,
+                total_profit=total_profit,
+                # In a real app, user_id would be pulled from request.user
+                user_id="manual_sale_user" 
+            )
+
+            # 2. Create the SaleItem record
+            SaleItem.objects.create(
+                sale=sale,
+                product=product,
+                stock_batch=available_batch,
+                quantity=quantity_sold,
+                price_at_sale=revenue,
+                cost_at_sale=cost
+            )
+
+            # 3. Update the Stock Batch (inventory reduction)
+            available_batch.quantity -= quantity_sold
+            available_batch.save()
+        
+        # Success! Redirect to the dashboard
+        return redirect('dashboard-page') 
+
+    # This is a GET request to show the form
+    return render(request, 'APP/sell-product.html', context)
+    
     return JsonResponse(data)

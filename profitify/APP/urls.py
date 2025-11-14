@@ -14,6 +14,12 @@ urlpatterns = [
 
     path('settings/', views.settings_page, name='settings-page'),
 
+    path('api/scan-check/', views.scan_barcode_api, name='scan-barcode-api'),
+
+    path('add-product/', views.add_product, name='add-product-page'),
+
+    path('sell-product/<int:product_id>/', views.sell_product, name='sell-product-page'),
+
     # This is the API endpoint for your barcode scanner
     path('api/scan/<str:barcode>/', views.scan_product_api, name='api-scan-product'),
 ]

@@ -1,0 +1,1074 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Product - Profitify</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #8B5FBF;
+            --secondary: #4ECDC4;
+            --accent: #FF9E64;
+            --light: #F7F9FC;
+            --dark: #2D3748;
+            --pastel-blue: #A8D8EA;
+            --pastel-green: #C7F0DB;
+            --pastel-yellow: #FFEAA7;
+            --pastel-purple: #D6BCFA;
+            --sky-blue: #87CEEB;
+            --vibrant-yellow: #FFD166;
+            --soft-purple: #C8B6FF;
+            --text: #4A5568;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            --glass: rgba(255, 255, 255, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header & Navigation */
+        header {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            position: fixed;
+            width: 100%;
+            top: 15px;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+            margin: 0 20px;
+            width: calc(100% - 40px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-left: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        .nav-links a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background-color: var(--primary);
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a:hover:after {
+            width: 100%;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #7a4ba8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 95, 191, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--vibrant-yellow);
+            color: #5a4a00;
+        }
+
+        .btn-secondary:hover {
+            background: #ffc94d;
+            transform: translateY(-2px);
+        }
+
+        /* Add Product Layout */
+        .add-product {
+            padding: 100px 0 50px;
+        }
+
+        /* Add Product Header */
+        .add-product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .back-btn {
+            background: var(--card-bg);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            background: var(--primary);
+            color: white;
+        }
+
+        .add-product-header h1 {
+            font-size: 2.5rem;
+            color: var(--dark);
+            flex: 1;
+            text-align: center;
+        }
+
+        /* Mode Selection */
+        .mode-selection {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+            justify-content: center;
+        }
+
+        .mode-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            max-width: 300px;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .mode-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(139, 95, 191, 0.2);
+        }
+
+        .mode-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
+        }
+
+        .scan-icon {
+            background: var(--pastel-purple);
+            color: var(--primary);
+        }
+
+        .manual-icon {
+            background: var(--pastel-blue);
+            color: #2a7a9c;
+        }
+
+        .mode-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .mode-card p {
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        /* Scanner Section */
+        .scanner-section {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            margin-bottom: 40px;
+            text-align: center;
+            display: none;
+        }
+
+        .scanner-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .scanner-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .scanner-placeholder {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, var(--pastel-purple), var(--sky-blue));
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scanner-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .scanner-placeholder h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .scanner-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--accent);
+            animation: scan 2s infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+
+            50% {
+                top: 100%;
+            }
+
+            100% {
+                top: 0;
+            }
+        }
+
+        .scanner-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        /* Manual Form Section */
+        .manual-form-section {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            margin-bottom: 40px;
+            display: none;
+        }
+
+        .manual-form-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--dark);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid #E5E7EB;
+            background: white;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 95, 191, 0.1);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 0.85rem;
+            color: var(--text);
+            margin-top: 5px;
+            opacity: 0.7;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-message.success {
+            background: var(--pastel-green);
+            border: 1px solid #2a9d8f;
+            color: #1a5d54;
+            display: flex;
+        }
+
+        .status-message.error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+            display: flex;
+        }
+
+        .status-message.info {
+            background: var(--pastel-blue);
+            border: 1px solid #2196f3;
+            color: #0d47a1;
+            display: flex;
+        }
+
+        /* Form Actions */
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 60px 0 30px;
+            border-radius: 40px 40px 0 0;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-column h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+
+        .footer-links a {
+            color: #CBD5E0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #4A5568;
+            color: #CBD5E0;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-icons a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .social-icons a:hover {
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            header {
+                top: 10px;
+                border-radius: 15px;
+                margin: 0 15px;
+                width: calc(100% - 30px);
+            }
+
+            .navbar {
+                flex-direction: column;
+                padding: 15px 0;
+            }
+
+            .nav-links {
+                margin: 20px 0;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .nav-links li {
+                margin: 0 10px 10px;
+            }
+
+            .auth-buttons {
+                margin-top: 10px;
+            }
+
+            .add-product {
+                padding: 130px 0 30px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .mode-selection {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .mode-card {
+                max-width: 100%;
+            }
+
+            .scanner-section,
+            .manual-form-section {
+                padding: 25px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .scanner-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Profitify</span>
+                </a>
+                <div class="auth-buttons">
+                    <a href="dashboard.html" class="btn btn-outline">Back to Dashboard</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Add Product Section -->
+    <section class="add-product">
+        <div class="container">
+            <!-- Add Product Header -->
+            <div class="add-product-header">
+                <a href="dashboard.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1>Add New Product</h1>
+                <div style="width: 50px;"></div>
+            </div>
+
+            <!-- Mode Selection -->
+            <div class="mode-selection">
+                <div class="mode-card active" data-mode="scan">
+                    <div class="mode-icon scan-icon">
+                        <i class="fas fa-barcode"></i>
+                    </div>
+                    <h3>Scan Barcode</h3>
+                    <p>Automatically retrieve product information by scanning barcode</p>
+                </div>
+                <div class="mode-card" data-mode="manual">
+                    <div class="mode-icon manual-icon">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                    <h3>Manual Entry</h3>
+                    <p>Enter product information manually without barcode scanning</p>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="scanStatus" class="status-message info">
+                <i class="fas fa-info-circle"></i>
+                <span>Select a method above to add a product</span>
+            </div>
+
+            <!-- Scanner Section -->
+            <div id="scannerSection" class="scanner-section active">
+                <div class="scanner-container">
+                    <div class="scanner-placeholder">
+                        <div class="scanner-animation"></div>
+                        <i class="fas fa-barcode"></i>
+                        <h3>Scan Product Barcode</h3>
+                        <p>Position barcode within the frame</p>
+                    </div>
+
+                    <div class="scanner-actions">
+                        <button class="btn btn-primary" id="startScannerBtn">
+                            <i class="fas fa-camera"></i>
+                            Start Scanner
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Form Section -->
+            <div id="manualFormSection" class="manual-form-section">
+                <form id="manualProductForm">
+                    <!-- Basic Information Section -->
+                    <div class="form-section">
+                        <h2 class="section-title">
+                            <i class="fas fa-info-circle"></i>
+                            Product Information
+                        </h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="productName">Product Name *</label>
+                                <input type="text" id="productName" class="form-control"
+                                    placeholder="Enter product name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productBrand">Brand</label>
+                                <input type="text" id="productBrand" class="form-control"
+                                    placeholder="Enter brand name">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="productCategory">Category *</label>
+                                <select id="productCategory" class="form-control" required>
+                                    <option value="">Select Category</option>
+                                    <option value="electronics">Electronics</option>
+                                    <option value="clothing">Clothing & Apparel</option>
+                                    <option value="food">Food & Beverages</option>
+                                    <option value="home">Home & Garden</option>
+                                    <option value="sports">Sports & Fitness</option>
+                                    <option value="beauty">Beauty & Personal Care</option>
+                                    <option value="books">Books & Media</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="barcodeNumber">Barcode Number (Optional)</label>
+                                <input type="text" id="barcodeNumber" class="form-control"
+                                    placeholder="Enter barcode if available">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="productDescription">Description</label>
+                            <textarea id="productDescription" class="form-control"
+                                placeholder="Enter product description"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Pricing & Inventory Section -->
+                    <div class="form-section">
+                        <h2 class="section-title">
+                            <i class="fas fa-tags"></i>
+                            Pricing & Inventory
+                        </h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="costPrice">Cost Price *</label>
+                                <input type="number" id="costPrice" class="form-control" placeholder="0.00" step="0.01"
+                                    min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sellingPrice">Selling Price *</label>
+                                <input type="number" id="sellingPrice" class="form-control" placeholder="0.00"
+                                    step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="stockQuantity">Stock Quantity *</label>
+                                <input type="number" id="stockQuantity" class="form-control" placeholder="0" min="0"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reorderLevel">Reorder Level</label>
+                                <input type="number" id="reorderLevel" class="form-control"
+                                    placeholder="Minimum stock level" min="0">
+                                <div class="form-hint">Get notified when stock reaches this level</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="form-section">
+                        <h2 class="section-title">
+                            <i class="fas fa-box"></i>
+                            Additional Details
+                        </h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="productWeight">Weight (kg)</label>
+                                <input type="number" id="productWeight" class="form-control" placeholder="0.00"
+                                    step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="productDimensions">Dimensions (L×W×H cm)</label>
+                                <input type="text" id="productDimensions" class="form-control"
+                                    placeholder="e.g., 10×5×2">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="productIngredients">Ingredients/Components</label>
+                            <textarea id="productIngredients" class="form-control"
+                                placeholder="List ingredients or components"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="supplierInfo">Supplier Information</label>
+                            <input type="text" id="supplierInfo" class="form-control"
+                                placeholder="Supplier name or contact">
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" id="switchToScanBtn">
+                            <i class="fas fa-barcode"></i>
+                            Switch to Scan
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Add Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Profitify</h3>
+                    <p>Making inventory management simple and profitable through AI and smart analytics.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#features">Features</a></li>
+                        <li><a href="index.html#about">How It Works</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#contact">Help Center</a></li>
+                        <li><a href="index.html#contact">Contact Us</a></li>
+                        <li><a href="index.html#contact">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2025 Profitify. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modeCards = document.querySelectorAll('.mode-card');
+            const scannerSection = document.getElementById('scannerSection');
+            const manualFormSection = document.getElementById('manualFormSection');
+            const scanStatus = document.getElementById('scanStatus');
+            const startScannerBtn = document.getElementById('startScannerBtn');
+            const switchToScanBtn = document.getElementById('switchToScanBtn');
+            const manualForm = document.getElementById('manualProductForm');
+
+            // Mock product database
+            const productDatabase = {
+                '123456789012': {
+                    name: 'Premium Wireless Headphones',
+                    brand: 'AudioTech',
+                    category: 'electronics',
+                    description: 'High-quality wireless headphones with noise cancellation',
+                    costPrice: 45.00,
+                    sellingPrice: 89.99,
+                    weight: 0.25,
+                    dimensions: '18×15×8',
+                    ingredients: 'Plastic, Metal, Electronics'
+                },
+                '234567890123': {
+                    name: 'Organic Green Tea',
+                    brand: 'NatureLeaf',
+                    category: 'food',
+                    description: 'Premium organic green tea leaves',
+                    costPrice: 8.50,
+                    sellingPrice: 15.99,
+                    weight: 0.1,
+                    dimensions: '12×8×20',
+                    ingredients: 'Organic Green Tea Leaves'
+                },
+                '345678901234': {
+                    name: 'Yoga Mat Premium',
+                    brand: 'FlexFit',
+                    category: 'sports',
+                    description: 'Non-slip yoga mat with carrying strap',
+                    costPrice: 22.00,
+                    sellingPrice: 39.99,
+                    weight: 1.2,
+                    dimensions: '183×61×0.6',
+                    ingredients: 'TPE Material, Natural Rubber'
+                }
+            };
+
+            // Mode selection
+            modeCards.forEach(card => {
+                card.addEventListener('click', function () {
+                    const mode = this.getAttribute('data-mode');
+
+                    // Update active states
+                    modeCards.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Show/hide sections
+                    scannerSection.classList.toggle('active', mode === 'scan');
+                    manualFormSection.classList.toggle('active', mode === 'manual');
+
+                    // Update status message
+                    if (mode === 'scan') {
+                        scanStatus.className = 'status-message info';
+                        scanStatus.innerHTML = '<i class="fas fa-info-circle"></i><span>Ready to scan. Click "Start Scanner" to begin.</span>';
+                    } else {
+                        scanStatus.className = 'status-message info';
+                        scanStatus.innerHTML = '<i class="fas fa-edit"></i><span>Enter product information manually below.</span>';
+                    }
+                });
+            });
+
+            // Start Scanner
+            startScannerBtn.addEventListener('click', function () {
+                scanStatus.className = 'status-message info';
+                scanStatus.innerHTML = '<i class="fas fa-camera"></i><span>Scanning in progress... Point camera at barcode</span>';
+
+                // Simulate scanning process
+                setTimeout(() => {
+                    const barcodes = Object.keys(productDatabase);
+                    const randomBarcode = barcodes[Math.floor(Math.random() * barcodes.length)];
+                    const productData = productDatabase[randomBarcode];
+
+                    if (productData) {
+                        // Successful scan - switch to manual form with auto-filled data
+                        populateManualForm(productData, randomBarcode);
+                        switchToManualMode();
+                        scanStatus.className = 'status-message success';
+                        scanStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Barcode scanned successfully! Product information loaded. Review and edit if needed.</span>';
+                    } else {
+                        // Failed scan
+                        scanStatus.className = 'status-message error';
+                        scanStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Barcode not recognized. Please try manual entry.</span>';
+                    }
+                }, 2000);
+            });
+
+            // Switch to Scan Mode
+            switchToScanBtn.addEventListener('click', function () {
+                document.querySelector('.mode-card[data-mode="scan"]').click();
+            });
+
+            // Populate manual form with product data
+            function populateManualForm(productData, barcode) {
+                document.getElementById('productName').value = productData.name;
+                document.getElementById('productBrand').value = productData.brand;
+                document.getElementById('productCategory').value = productData.category;
+                document.getElementById('barcodeNumber').value = barcode;
+                document.getElementById('productDescription').value = productData.description;
+                document.getElementById('costPrice').value = productData.costPrice;
+                document.getElementById('sellingPrice').value = productData.sellingPrice;
+                document.getElementById('stockQuantity').value = Math.floor(Math.random() * 100) + 1;
+                document.getElementById('productWeight').value = productData.weight;
+                document.getElementById('productDimensions').value = productData.dimensions;
+                document.getElementById('productIngredients').value = productData.ingredients;
+            }
+
+            // Switch to manual mode
+            function switchToManualMode() {
+                document.querySelector('.mode-card[data-mode="manual"]').click();
+            }
+
+            // Manual form submission
+            manualForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const formData = {
+                    name: document.getElementById('productName').value,
+                    brand: document.getElementById('productBrand').value,
+                    category: document.getElementById('productCategory').value,
+                    barcode: document.getElementById('barcodeNumber').value,
+                    description: document.getElementById('productDescription').value,
+                    costPrice: parseFloat(document.getElementById('costPrice').value),
+                    sellingPrice: parseFloat(document.getElementById('sellingPrice').value),
+                    stockQuantity: parseInt(document.getElementById('stockQuantity').value),
+                    reorderLevel: parseInt(document.getElementById('reorderLevel').value) || 0,
+                    weight: parseFloat(document.getElementById('productWeight').value) || 0,
+                    dimensions: document.getElementById('productDimensions').value,
+                    ingredients: document.getElementById('productIngredients').value,
+                    supplier: document.getElementById('supplierInfo').value
+                };
+
+                // Validate required fields
+                if (!formData.name || !formData.category || !formData.costPrice || !formData.sellingPrice || !formData.stockQuantity) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                if (formData.sellingPrice <= formData.costPrice) {
+                    alert('Selling price must be greater than cost price');
+                    return;
+                }
+
+                // Simulate API call
+                console.log('Product Data to Save:', formData);
+
+                // Show success
+                scanStatus.className = 'status-message success';
+                scanStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Product added successfully!</span>';
+
+                // Reset form after success
+                setTimeout(() => {
+                    manualForm.reset();
+                    scanStatus.className = 'status-message info';
+                    scanStatus.innerHTML = '<i class="fas fa-info-circle"></i><span>Select a method above to add another product</span>';
+                    document.querySelector('.mode-card[data-mode="scan"]').click();
+                }, 3000);
+            });
+
+            // Auto-calculate profit margin
+            const costPriceInput = document.getElementById('costPrice');
+            const sellingPriceInput = document.getElementById('sellingPrice');
+
+            function calculateProfitMargin() {
+                const cost = parseFloat(costPriceInput.value) || 0;
+                const selling = parseFloat(sellingPriceInput.value) || 0;
+
+                if (cost > 0 && selling > cost) {
+                    const profit = selling - cost;
+                    const margin = ((profit / selling) * 100).toFixed(2);
+                    console.log(`Profit Margin: ${margin}%`);
+                }
+            }
+
+            costPriceInput.addEventListener('input', calculateProfitMargin);
+            sellingPriceInput.addEventListener('input', calculateProfitMargin);
+        });
+    </script>
+</body>
+
+</html>
