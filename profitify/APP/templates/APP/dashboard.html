@@ -435,6 +435,142 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Popup Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 40px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text);
+            transition: color 0.3s;
+        }
+
+        .close-modal:hover {
+            color: var(--primary);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+
+        .modal-subtitle {
+            color: var(--text);
+            margin-bottom: 30px;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: var(--light);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+        }
+
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.3rem;
+        }
+
+        .sell-icon {
+            background: var(--pastel-green);
+            color: #2a9d8f;
+        }
+
+        .add-icon {
+            background: var(--pastel-blue);
+            color: #2a7a9c;
+        }
+
+        .action-text h4 {
+            font-size: 1.2rem;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .action-text p {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+
+            .action-buttons {
+                gap: 15px;
+            }
+
+            .action-btn {
+                padding: 15px;
+            }
+        }
     </style>
 </head>
 
@@ -447,12 +583,6 @@
                     <i class="fas fa-chart-line"></i>
                     <span>Profitify</span>
                 </div>
-                <ul class="nav-links">
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="index.html#about">About</a></li>
-                    <li><a href="index.html#features">Features</a></li>
-                    <li><a href="#" class="active">Dashboard</a></li>
-                </ul>
                 <div class="auth-buttons">
                     <a href="{% url 'landing-page' %}" class="btn btn-outline">Back to Home</a>
                 </div>
@@ -474,7 +604,7 @@
                     </div>
                     <h3>Settings</h3>
                     <p>Configure your account preferences, notifications, and system settings.</p>
-                    <a href="#" class="btn btn-primary">Open Settings</a>
+                    <a href="settings.html" class="btn btn-primary">Open Settings</a>
                 </div>
 
                 <div class="dashboard-card">
@@ -513,8 +643,36 @@
                     <a href="#" class="btn btn-primary">Start Scanning</a>
                 </div>
             </div>
+            <div id="scanModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2 class="modal-title">Choose Action</h2>
+                    <p class="modal-subtitle">What would you like to do with the scanned product?</p>
 
-            
+                    <div class="action-buttons">
+                        <div class="action-btn" id="sellProductBtn">
+                            <div class="action-icon sell-icon">
+                                <i class="fas fa-cash-register"></i>
+                            </div>
+                            <div class="action-text">
+                                <h4>Sell Product</h4>
+                                <p>Process a sale for existing inventory</p>
+                            </div>
+                        </div>
+
+                        <div class="action-btn" id="addProductBtn">
+                            <div class="action-icon add-icon">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <div class="action-text">
+                                <h4>Add Product</h4>
+                                <p>Add new product to your inventory</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </section>
 
@@ -592,6 +750,64 @@
             const statCards = document.querySelectorAll('.stat-card');
             statCards.forEach((item, index) => {
                 item.style.transitionDelay = `${index * 0.1}s`;
+            });
+        });
+        // Scan Modal Functionality - Only for Scan Page card
+        document.addEventListener('DOMContentLoaded', function () {
+            const scanModal = document.getElementById('scanModal');
+            const closeModal = document.querySelector('.close-modal');
+            const sellProductBtn = document.getElementById('sellProductBtn');
+            const addProductBtn = document.getElementById('addProductBtn');
+
+            // Find the Scan Page card specifically by its content
+            const scanCards = document.querySelectorAll('.dashboard-card');
+            let scanCardButton = null;
+
+            scanCards.forEach(card => {
+                if (card.querySelector('h3').textContent === 'Scan Page') {
+                    scanCardButton = card.querySelector('.btn-primary');
+                }
+            });
+
+            // Open modal when Scan Page card is clicked
+            if (scanCardButton) {
+                scanCardButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scanModal.style.display = 'flex';
+                });
+            }
+
+            // Close modal when X is clicked
+            closeModal.addEventListener('click', function () {
+                scanModal.style.display = 'none';
+            });
+
+            // Close modal when clicking outside
+            scanModal.addEventListener('click', function (e) {
+                if (e.target === scanModal) {
+                    scanModal.style.display = 'none';
+                }
+            });
+
+            // Sell Product action
+            sellProductBtn.addEventListener('click', function () {
+                alert('Redirecting to Sell Product Flow...');
+                // Add your sell product logic here
+                scanModal.style.display = 'none';
+            });
+
+            // Add Product action
+            addProductBtn.addEventListener('click', function () {
+                // Redirect to add-product.html
+                window.location.href = 'add-product.html';
+                scanModal.style.display = 'none';
+            });
+
+            // Close with Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    scanModal.style.display = 'none';
+                }
             });
         });
     </script>
