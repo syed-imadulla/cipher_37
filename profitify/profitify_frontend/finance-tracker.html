@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker - Profitify</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+         :root {
+            --primary: #8B5FBF;
+            --secondary: #4ECDC4;
+            --accent: #FF9E64;
+            --light: #F7F9FC;
+            --dark: #2D3748;
+            --pastel-blue: #A8D8EA;
+            --pastel-green: #C7F0DB;
+            --pastel-yellow: #FFEAA7;
+            --pastel-purple: #D6BCFA;
+            --sky-blue: #87CEEB;
+            --vibrant-yellow: #FFD166;
+            --soft-purple: #C8B6FF;
+            --text: #4A5568;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            --glass: rgba(255, 255, 255, 0.25);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        /* Header & Navigation */
+        
+        header {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            position: fixed;
+            width: 100%;
+            top: 15px;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+            margin: 0 20px;
+            width: calc(100% - 40px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-left: 30px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+        
+        .nav-links a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background-color: var(--primary);
+            transition: width 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-links a:hover:after {
+            width: 100%;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #7a4ba8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 95, 191, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--vibrant-yellow);
+            color: #5a4a00;
+        }
+        
+        .btn-secondary:hover {
+            background: #ffc94d;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 209, 102, 0.3);
+        }
+        
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-accent:hover {
+            background: #ff8c42;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 158, 100, 0.3);
+        }
+        /* Finance Tracker Header */
+        
+        .finance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .back-btn {
+            background: var(--card-bg);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: var(--text);
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            background: var(--primary);
+            color: white;
+        }
+        
+        .finance-header h1 {
+            font-size: 2rem;
+            color: var(--dark);
+            flex: 1;
+            text-align: center;
+        }
+        
+        .date-filter {
+            background: var(--card-bg);
+            border-radius: 50px;
+            padding: 10px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        /* Hero Metric */
+        
+        .hero-metric {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-metric:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--pastel-purple), var(--sky-blue), var(--vibrant-yellow));
+        }
+        
+        .profit-amount {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .profit-label {
+            font-size: 1.2rem;
+            color: var(--text);
+            margin-bottom: 20px;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .stat {
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        /* Chart Section */
+        
+        .chart-section {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chart-section:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--pastel-purple), var(--sky-blue), var(--vibrant-yellow));
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .chart-header h2 {
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+        
+        .chart-toggle {
+            display: flex;
+            background: rgba(139, 95, 191, 0.1);
+            border-radius: 50px;
+            padding: 5px;
+        }
+        
+        .toggle-btn {
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        /* Product Insights */
+        
+        .insights-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .insight-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .insight-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+        }
+        
+        .profit-makers:before {
+            background: var(--pastel-green);
+        }
+        
+        .profit-drainers:before {
+            background: var(--accent);
+        }
+        
+        .insight-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .insight-header h3 {
+            font-size: 1.3rem;
+            color: var(--dark);
+        }
+        
+        .insight-list {
+            list-style: none;
+        }
+        
+        .insight-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+        
+        .product-info {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .product-name {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+        
+        .product-details {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        
+        .profit-amount-small {
+            font-weight: 700;
+            color: var(--primary);
+            margin-right: 15px;
+        }
+        
+        .margin-badge {
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .positive-margin {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+        }
+        
+        .negative-margin {
+            background: rgba(244, 67, 54, 0.1);
+            color: #F44336;
+        }
+        
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .action-btn:hover {
+            background: #7a4ba8;
+            transform: translateY(-2px);
+        }
+        /* Alerts Section */
+        
+        .alerts-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        
+        .alert-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .alert-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+        }
+        
+        .expiry-alerts:before {
+            background: var(--vibrant-yellow);
+        }
+        
+        .stock-alerts:before {
+            background: var(--pastel-blue);
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .alert-header h3 {
+            font-size: 1.3rem;
+            color: var(--dark);
+        }
+        
+        .alert-count {
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .alert-list {
+            list-style: none;
+        }
+        
+        .alert-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .alert-item:last-child {
+            border-bottom: none;
+        }
+        
+        .alert-info {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .alert-product {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+        
+        .alert-details {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        
+        .expiry-badge {
+            background: rgba(255, 193, 7, 0.1);
+            color: #FFC107;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .stock-badge {
+            background: rgba(33, 150, 243, 0.1);
+            color: #2196F3;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        /* Footer */
+        
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 60px 0 30px;
+            border-radius: 40px 40px 0 0;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-column h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: #CBD5E0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #4A5568;
+            color: #CBD5E0;
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .social-icons a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .social-icons a:hover {
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+        /* Responsive Design */
+        
+        @media (max-width: 1024px) {
+            .insights-section,
+            .alerts-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                top: 10px;
+                border-radius: 15px;
+                margin: 0 15px;
+                width: calc(100% - 30px);
+            }
+            .navbar {
+                flex-direction: column;
+                padding: 15px 0;
+            }
+            .nav-links {
+                margin: 20px 0;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .nav-links li {
+                margin: 0 10px 10px;
+            }
+            .auth-buttons {
+                margin-top: 10px;
+            }
+            .finance-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .finance-header h1 {
+                text-align: left;
+            }
+            .stats-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .chart-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .chart-toggle {
+                align-self: stretch;
+                justify-content: center;
+            }
+            .chart-container {
+                height: 250px;
+            }
+            .insight-item,
+            .alert-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .insight-item>div,
+            .alert-item>div {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .action-btn {
+                align-self: flex-end;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .profit-amount {
+                font-size: 2.5rem;
+            }
+            .chart-container {
+                height: 200px;
+            }
+            .insight-card,
+            .alert-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Profitify</span>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#about">About</a></li>
+                    <li><a href="index.html#features">Features</a></li>
+                </ul>
+                <div class="auth-buttons">
+                    <a href="dashboard.html" class="btn btn-primary">Dashboard</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Finance Tracker Content -->
+    <div class="container">
+        <!-- Finance Header -->
+        <div class="finance-header">
+            <a href="dashboard.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1>Finance Tracker</h1>
+            <div class="date-filter">
+                <span>Today</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+
+        <!-- Hero Metric -->
+        <div class="hero-metric">
+            <div class="profit-amount">₹4,250</div>
+            <div class="profit-label">Today's Profit</div>
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-value">₹12,800</div>
+                    <div class="stat-label">Revenue</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">₹8,550</div>
+                    <div class="stat-label">Amount Invested In Goods</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">42</div>
+                    <div class="stat-label">Sales</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <div class="chart-header">
+                <h2>Revenue vs Amount Invested In Goods</h2>
+                <div class="chart-toggle">
+                    <div class="toggle-btn active">7 Days</div>
+                    <div class="toggle-btn">30 Days</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Product Insights -->
+        <div class="insights-section">
+            <!-- Profit Makers -->
+            <div class="insight-card profit-makers">
+                <div class="insight-header">
+                    <h3>Profit Makers</h3>
+                    <span>Top 5</span>
+                </div>
+                <ul class="insight-list">
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Wireless Earbuds</div>
+                            <div class="product-details">12 units sold</div>
+                        </div>
+                        <div class="profit-amount-small">₹1,240</div>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Phone Case - Premium</div>
+                            <div class="product-details">18 units sold</div>
+                        </div>
+                        <div class="profit-amount-small">₹980</div>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">USB-C Cable</div>
+                            <div class="product-details">25 units sold</div>
+                        </div>
+                        <div class="profit-amount-small">₹750</div>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Screen Protector</div>
+                            <div class="product-details">15 units sold</div>
+                        </div>
+                        <div class="profit-amount-small">₹620</div>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Portable Charger</div>
+                            <div class="product-details">8 units sold</div>
+                        </div>
+                        <div class="profit-amount-small">₹560</div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Profit Drainers -->
+            <div class="insight-card profit-drainers">
+                <div class="insight-header">
+                    <h3>Profit Drainers</h3>
+                    <span>Need Attention</span>
+                </div>
+                <ul class="insight-list">
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Old Model Headphones</div>
+                            <div class="product-details">Slow moving</div>
+                        </div>
+                        <div class="margin-badge negative-margin">-8%</div>
+                        <button class="action-btn">View</button>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Tablet Stand</div>
+                            <div class="product-details">Low margin</div>
+                        </div>
+                        <div class="margin-badge negative-margin">-5%</div>
+                        <button class="action-btn">View</button>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Bluetooth Speaker</div>
+                            <div class="product-details">High return rate</div>
+                        </div>
+                        <div class="margin-badge negative-margin">-12%</div>
+                        <button class="action-btn">View</button>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">VR Headset</div>
+                            <div class="product-details">Slow moving</div>
+                        </div>
+                        <div class="margin-badge negative-margin">-15%</div>
+                        <button class="action-btn">View</button>
+                    </li>
+                    <li class="insight-item">
+                        <div class="product-info">
+                            <div class="product-name">Smart Watch Band</div>
+                            <div class="product-details">Low demand</div>
+                        </div>
+                        <div class="margin-badge negative-margin">-7%</div>
+                        <button class="action-btn">View</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div class="alerts-section">
+            <!-- Expiry Alerts -->
+            <div class="alert-card expiry-alerts">
+                <div class="alert-header">
+                    <h3>Expiring Soon</h3>
+                    <div class="alert-count">3</div>
+                </div>
+                <ul class="alert-list">
+                    <li class="alert-item">
+                        <div class="alert-info">
+                            <div class="alert-product">Protein Bars - Chocolate</div>
+                            <div class="alert-details">Expires in 7 days</div>
+                        </div>
+                        <div class="expiry-badge">7 days</div>
+                        <button class="action-btn">Add to PO</button>
+                    </li>
+                    <li class="alert-item">
+                        <div class="alert-info">
+                            <div class="alert-product">Energy Drinks</div>
+                            <div class="alert-details">Expires in 14 days</div>
+                        </div>
+                        <div class="expiry-badge">14 days</div>
+                        <button class="action-btn">Add to PO</button>
+                    </li>
+                    <li class="alert-item">
+                        <div class="alert-info">
+                            <div class="alert-product">Snack Mix</div>
+                            <div class="alert-details">Expires in 21 days</div>
+                        </div>
+                        <div class="expiry-badge">21 days</div>
+                        <button class="action-btn">Add to PO</button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Low Stock Alerts -->
+            <div class="alert-card stock-alerts">
+                <div class="alert-header">
+                    <h3>Low Stock</h3>
+                    <div class="alert-count">4</div>
+                </div>
+                <ul class="alert-list">
+                    <li class="alert-item">
+                        <div class="alert-info">
+                            <div class="alert-product">Wireless Earbuds</div>
+                            <div class="alert-details">Only 3 left</div>
+                        </div>
+                        <div class="stock-badge">Low</div>
+                        <button class="action-btn">Add to PO</button>
+                    </li>
+                    <li class="alert-item">
+                        <div class="alert-info">
+                            <div class="alert-product">Phone Case - Premium</div>
+                            <div class="alert-details">Only 5 left</div>
+                        </div>
+                        <div class="stock-badge">Low</div>
+                        <button class="action-btn">Add to PO</button>
+                    </li>
+                    <li class="alert-item">
+                        <div class="alert-info">
+                            <div class="alert-product">USB-C Cable</div>
+                            <div class="alert-details">Only 8 left</div>
+                        </div>
+                        <div class="stock-badge">Low</div>
+                        <button class="action-btn">Add to PO</button>
+                    </li>
+                    <li class="alert-item">
+                        <div class="alert-info">
+                            <div class="alert-product">Screen Protector</div>
+                            <div class="alert-details">Only 6 left</div>
+                        </div>
+                        <div class="stock-badge">Low</div>
+                        <button class="action-btn">Add to PO</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Profitify</h3>
+                    <p>Making inventory management simple and profitable through AI and smart analytics.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">How It Works</a></li>
+                        <li><a href="#">Pricing</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Profitify. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Chart.js Implementation
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+
+            // Sample data for the chart
+            const revenueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [8500, 10200, 9800, 11200, 12800, 14500, 13200],
+                        borderColor: '#8B5FBF',
+                        backgroundColor: 'rgba(139, 95, 191, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Amount Invested In Goods',
+                        data: [6200, 7500, 6800, 8200, 8550, 9800, 9200],
+                        borderColor: '#4ECDC4',
+                        backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ₹' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Toggle buttons functionality
+            const toggleButtons = document.querySelectorAll('.toggle-btn');
+            toggleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    toggleButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // In a real app, this would update the chart data
+                    // For demo purposes, we'll just log the action
+                    console.log('Switched to:', this.textContent);
+                });
+            });
+
+            // Date filter functionality
+            const dateFilter = document.querySelector('.date-filter');
+            dateFilter.addEventListener('click', function() {
+                // In a real app, this would open a date picker
+                alert('Date filter would open here in the full implementation');
+            });
+
+            // Action buttons functionality
+            const actionButtons = document.querySelectorAll('.action-btn');
+            actionButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // In a real app, this would perform the specific action
+                    // For demo purposes, we'll just log the action
+                    console.log('Action button clicked:', this.textContent);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
