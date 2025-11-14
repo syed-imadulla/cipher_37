@@ -1143,11 +1143,7 @@
             });
         });
     </script>
-    // Filter Tabs Functionality const filterTabs = document.querySelectorAll('.filter-tab'); const profitAmount = document.querySelector('.profit-amount'); const revenueValue = document.querySelector('.stat-value:nth-child(1)'); const cogsValue = document.querySelector('.stat-value:nth-child(2)');
-    const salesValue = document.querySelector('.stat-value:nth-child(3)'); // Sample data for different time periods const filterData = { today: { profit: '₹4,250', revenue: '₹12,800', cogs: '₹8,550', sales: '42' }, '7days': { profit: '₹28,750', revenue:
-    '₹89,600', cogs: '₹60,850', sales: '295' }, '30days': { profit: '₹1,15,400', revenue: '₹3,58,400', cogs: '₹2,43,000', sales: '1,180' } }; // Add click event listeners to filter tabs filterTabs.forEach(tab => { tab.addEventListener('click', function()
-    { // Remove active class from all tabs filterTabs.forEach(t => t.classList.remove('active')); // Add active class to clicked tab this.classList.add('active'); // Get the filter period const period = this.getAttribute('data-filter'); // Update metrics
-    const data = filterData[period]; profitAmount.textContent = data.profit; revenueValue.textContent = data.revenue; cogsValue.textContent = data.cogs; salesValue.textContent = data.sales; }); });
+    
 </body>
 
 </html>
