@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Profitify</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #8B5FBF;
+            --secondary: #4ECDC4;
+            --accent: #FF9E64;
+            --light: #F7F9FC;
+            --dark: #2D3748;
+            --pastel-blue: #A8D8EA;
+            --pastel-green: #C7F0DB;
+            --pastel-yellow: #FFEAA7;
+            --pastel-purple: #D6BCFA;
+            --sky-blue: #87CEEB;
+            --vibrant-yellow: #FFD166;
+            --soft-purple: #C8B6FF;
+            --text: #4A5568;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            --glass: rgba(255, 255, 255, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.6rem;
+        }
+
+        .store-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .store-name {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--dark);
+        }
+
+        .store-status {
+            font-size: 0.8rem;
+            color: var(--primary);
+            background: rgba(139, 95, 191, 0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(139, 95, 191, 0.1);
+            color: var(--primary);
+            border: none;
+        }
+
+        .icon-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .notification-badge {
+            position: relative;
+        }
+
+        .notification-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #EF4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            border: 2px solid white;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex-grow: 1;
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Welcome Section */
+        .welcome-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--soft-purple) 100%);
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+
+        .welcome-card h1 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .welcome-card p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        /* Quick Actions */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title span {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .quick-action {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 18px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .quick-action:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 1.4rem;
+        }
+
+        .action-1 { background: linear-gradient(135deg, #A8D8EA, #87CEEB); color: #1a5276; }
+        .action-2 { background: linear-gradient(135deg, #FFEAA7, #FFD166); color: #5a4a00; }
+        .action-3 { background: linear-gradient(135deg, #C7F0DB, #4ECDC4); color: #0d5d47; }
+        .action-4 { background: linear-gradient(135deg, #D6BCFA, #8B5FBF); color: white; }
+
+        .action-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .action-desc {
+            font-size: 0.75rem;
+            color: var(--text);
+        }
+
+        /* Dashboard Cards */
+        .dashboard-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--pastel-purple), var(--sky-blue), var(--vibrant-yellow));
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            font-size: 1.6rem;
+            flex-shrink: 0;
+        }
+
+        .scan-icon {
+            background: linear-gradient(135deg, var(--pastel-purple), var(--primary));
+            color: white;
+        }
+
+        .finance-icon {
+            background: linear-gradient(135deg, var(--vibrant-yellow), #FFB347);
+            color: #5a4a00;
+        }
+
+        .ai-icon {
+            background: linear-gradient(135deg, var(--sky-blue), #6ECBF5);
+            color: #1a5276;
+        }
+
+        .card-content {
+            flex-grow: 1;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 6px;
+        }
+
+        .card-subtitle {
+            color: var(--text);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .card-stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .card-stat {
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+
+        .card-stat i {
+            margin-right: 5px;
+            font-size: 0.7rem;
+        }
+
+        .positive { color: #10B981; }
+        .warning { color: #F59E0B; }
+
+        .card-arrow {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            background: var(--card-bg);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 10px;
+            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.08);
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s;
+            padding: 8px 12px;
+            border-radius: 12px;
+            min-width: 60px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(139, 95, 191, 0.1);
+        }
+
+        .nav-item i {
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-item span {
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark);
+            color: white;
+            padding: 70px 20px 20px;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .version {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .support-link {
+            color: var(--pastel-blue);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.3s;
+        }
+
+        .support-link:hover {
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .header {
+                padding: 15px;
+            }
+            
+            .main-content {
+                padding: 20px 15px 80px;
+                gap: 20px;
+            }
+            
+            .welcome-card {
+                padding: 20px;
+            }
+            
+            .dashboard-card {
+                padding: 20px;
+            }
+            
+            .card-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.4rem;
+                margin-right: 15px;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .icon-btn {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="header">
+        <a href="index.html" class="logo">
+            <i class="fas fa-chart-line"></i>
+            <span>Profitify</span>
+        </a>
+        <div class="store-info">
+            <div class="store-name">City Mart Store</div>
+            <div class="store-status">Open • 9AM-9PM</div>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="settingsBtn">
+                <i class="fas fa-cog"></i>
+            </button>
+            <button class="icon-btn notification-badge" id="notificationBtn">
+                <i class="fas fa-robot"></i>
+                <div class="notification-count">3</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Welcome Card -->
+        <div class="welcome-card">
+            <h1>Good morning, Raj!</h1>
+            <p>Your business is doing great today. Keep it up!</p>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-value">₹12,458</div>
+                    <div class="stat-label">Today's Revenue</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">₹3,842</div>
+                    <div class="stat-label">Profit</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">47</div>
+                    <div class="stat-label">Items Sold</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section-title">
+            Quick Actions
+            <span>See all</span>
+        </div>
+        <div class="quick-actions">
+            <div class="quick-action" id="addProduct">
+                <div class="action-icon action-1">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="action-title">Add Product</div>
+                <div class="action-desc">Scan new items</div>
+            </div>
+            <div class="quick-action" id="sellProduct">
+                <div class="action-icon action-2">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="action-title">Sell Product</div>
+                <div class="action-desc">Process sales</div>
+            </div>
+            <div class="quick-action" id="viewInventory">
+                <div class="action-icon action-3">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div class="action-title">Inventory</div>
+                <div class="action-desc">Check stock</div>
+            </div>
+            <div class="quick-action" id="createPO">
+                <div class="action-icon action-4">
+                    <i class="fas fa-file-invoice"></i>
+                </div>
+                <div class="action-title">Purchase Order</div>
+                <div class="action-desc">Order supplies</div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Cards -->
+        <div class="dashboard-card" id="scanCard">
+            <div class="card-icon scan-icon">
+                <i class="fas fa-camera"></i>
+            </div>
+            <div class="card-content">
+                <h2 class="card-title">Scan</h2>
+                <p class="card-subtitle">Add or sell products with barcode scanner</p>
+                <div class="card-stats">
+                    <div class="card-stat positive">
+                        <i class="fas fa-arrow-up"></i> 12 scans today
+                    </div>
+                </div>
+            </div>
+            <div class="card-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-card" id="financeCard">
+            <div class="card-icon finance-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="card-content">
+                <h2 class="card-title">Finance Tracker</h2>
+                <p class="card-subtitle">Real-time profit and revenue analytics</p>
+                <div class="card-stats">
+                    <div class="card-stat positive">
+                        <i class="fas fa-rupee-sign"></i> 31% profit margin
+                    </div>
+                </div>
+            </div>
+            <div class="card-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-card" id="advisorCard">
+            <div class="card-icon ai-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div class="card-content">
+                <h2 class="card-title">AI Advisor</h2>
+                <p class="card-subtitle">Smart recommendations for your business</p>
+                <div class="card-stats">
+                    <div class="card-stat warning">
+                        <i class="fas fa-exclamation-circle"></i> 3 new alerts
+                    </div>
+                </div>
+            </div>
+            <div class="card-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section-title">
+            Recent Activity
+            <span>View all</span>
+        </div>
+        <div class="activity-list">
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Amul Butter sold</div>
+                    <div class="activity-desc">5 units at ₹45 each</div>
+                    <div class="activity-time">10:24 AM</div>
+                </div>
+                <div class="activity-amount positive">
+                    +₹225
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Lays Chips added</div>
+                    <div class="activity-desc">Stock updated to 50 units</div>
+                    <div class="activity-time">09:45 AM</div>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Low stock alert</div>
+                    <div class="activity-desc">Coca-Cola running low</div>
+                    <div class="activity-time">Yesterday</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="scanner.html" class="nav-item">
+            <i class="fas fa-camera"></i>
+            <span>Scan</span>
+        </a>
+        <a href="finance.html" class="nav-item">
+            <i class="fas fa-chart-pie"></i>
+            <span>Finance</span>
+        </a>
+        <a href="advisor.html" class="nav-item">
+            <i class="fas fa-robot"></i>
+            <span>Advisor</span>
+        </a>
+        <a href="inventory.html" class="nav-item">
+            <i class="fas fa-boxes"></i>
+            <span>Inventory</span>
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="version">Profitify v1.2</div>
+            <a href="#" class="support-link">Help & Support</a>
+        </div>
+    </div>
+
+    <script>
+        // Header actions
+        const settingsBtn = document.getElementById('settingsBtn');
+        const notificationBtn = document.getElementById('notificationBtn');
+        
+        // Dashboard cards
+        const scanCard = document.getElementById('scanCard');
+        const financeCard = document.getElementById('financeCard');
+        const advisorCard = document.getElementById('advisorCard');
+        
+        // Quick actions
+        const addProduct = document.getElementById('addProduct');
+        const sellProduct = document.getElementById('sellProduct');
+        const viewInventory = document.getElementById('viewInventory');
+        const createPO = document.getElementById('createPO');
+
+        // Settings button click
+        settingsBtn.addEventListener('click', () => {
+            alert('Opening settings...');
+            // Navigate to settings page
+            // window.location.href = 'settings.html';
+        });
+
+        // Notification badge click
+        notificationBtn.addEventListener('click', () => {
+            // Navigate to AI Advisor page
+            window.location.href = 'advisor.html';
+        });
+
+        // Dashboard card clicks
+        scanCard.addEventListener('click', () => {
+            // Navigate to scanner page
+            window.location.href = 'scanner.html';
+        });
+
+        financeCard.addEventListener('click', () => {
+            // Navigate to finance tracker page
+            window.location.href = 'finance.html';
+        });
+
+        advisorCard.addEventListener('click', () => {
+            // Navigate to AI advisor page
+            window.location.href = 'advisor.html';
+        });
+
+        // Quick action clicks
+        addProduct.addEventListener('click', () => {
+            alert('Opening Add Product scanner...');
+            // window.location.href = 'scanner.html?action=add';
+        });
+
+        sellProduct.addEventListener('click', () => {
+            alert('Opening Sell Product scanner...');
+            // window.location.href = 'scanner.html?action=sell';
+        });
+
+        viewInventory.addEventListener('click', () => {
+            alert('Opening Inventory...');
+            // window.location.href = 'inventory.html';
+        });
+
+        createPO.addEventListener('click', () => {
+            alert('Creating new Purchase Order...');
+            // window.location.href = 'purchase-order.html';
+        });
+
+        // Add ripple effect to cards
+        document.querySelectorAll('.dashboard-card, .quick-action').forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Create ripple element
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.classList.add('ripple');
+                
+                this.appendChild(ripple);
+                
+                // Remove ripple after animation
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+
+        // Add ripple styles dynamically
+        const style = document.createElement('style');
+        style.textContent = `
+            .ripple {
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.5);
+                transform: scale(0);
+                animation: ripple-animation 0.6s linear;
+            }
+            
+            @keyframes ripple-animation {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+
+            /* Activity List Styles */
+            .activity-list {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .activity-item {
+                background: var(--card-bg);
+                border-radius: 16px;
+                padding: 18px;
+                display: flex;
+                align-items: center;
+                box-shadow: var(--shadow);
+                border: 1px solid rgba(255, 255, 255, 0.8);
+            }
+
+            .activity-icon {
+                width: 44px;
+                height: 44px;
+                border-radius: 12px;
+                background: rgba(139, 95, 191, 0.1);
+                color: var(--primary);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 15px;
+                font-size: 1.1rem;
+            }
+
+            .activity-content {
+                flex-grow: 1;
+            }
+
+            .activity-title {
+                font-weight: 600;
+                color: var(--dark);
+                font-size: 0.95rem;
+                margin-bottom: 4px;
+            }
+
+            .activity-desc {
+                color: var(--text);
+                font-size: 0.85rem;
+                margin-bottom: 4px;
+            }
+
+            .activity-time {
+                color: var(--text);
+                font-size: 0.75rem;
+                opacity: 0.7;
+            }
+
+            .activity-amount {
+                font-weight: 700;
+                font-size: 1rem;
+            }
+
+            .positive {
+                color: #10B981;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
