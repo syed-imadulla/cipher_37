@@ -1,138 +1,160 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.shortcuts import render
+from django.http import JsonResponse, HttpResponse
+from .models import Product, Sale, SaleItem, StockBatch, Alert
 from django.utils import timezone
 from django.db.models import Sum, F
-from .models import Product, Sale, SaleItem, StockBatch, Alert
-from datetime import timedelta
 
 # Create your views here.
 
 def landing_page(request):
     """
-    This will be the main home page for the user.
+    This is the main homepage (your flowchart's 'Landing Page').
     """
-    # Just renders the main landing page template
+    # Just shows the simple landing_page.html template
     return render(request, 'APP/landing_page.html')
 
 def finance_tracker(request):
     """
-    This view provides all the data for the "Finance Tracker" page.
+    This page shows 'Today's Profit', 'Revenue vs COGS', and 'Profit Makers'.
     """
-    # 1. Calculate Today's Profit
     today = timezone.now().date()
-    sales_today = Sale.objects.filter(sale_timestamp__date=today)
     
-    todays_profit = sales_today.aggregate(
-        total_profit=Sum('total_profit')
-    )['total_profit'] or 0.00
-
-    # 2. Calculate Revenue vs COGS (Cost of Goods Sold)
-    # Revenue is the total amount from sales
-    todays_revenue = sales_today.aggregate(
-        total_revenue=Sum('total_amount')
-    )['total_revenue'] or 0.00
+    # 1. Calculate Today's Profit
+    # Get all sales from today
+    sales_today = Sale.objects.filter(sale_date__date=today)
     
-    # COGS is the cost of the items sold
-    todays_cogs = sales_today.aggregate(
-        total_cogs=Sum('saleitem__cost_at_sale') * F('saleitem__quantity')
-    ).get('total_cogs', 0.00) or 0.00
+    # Calculate total revenue and total cost of goods sold (COGS) for today
+    total_revenue_today = sales_today.aggregate(total=Sum('total_price'))['total'] or 0
+    total_cogs_today = 0
+    
+    for sale in sales_today:
+        for item in sale.items.all():
+            # Add the cost of this specific batch to the COGS
+            total_cogs_today += item.stock_batch.cost_price * item.quantity
+            
+    todays_profit = total_revenue_today - total_cogs_today
 
-    # 3. Calculate Profit Metrics (e.g., Gross Margin)
-    gross_margin = 0
-    if todays_revenue > 0:
-        gross_margin = (todays_profit / todays_revenue) * 100
+    # 2. Revenue vs COGS (can be expanded for a chart)
+    revenue_vs_cogs = {
+        'revenue': total_revenue_today,
+        'cogs': total_cogs_today,
+        'profit': todays_profit
+    }
 
+    # 3. Profit Makers (Top 5 profitable products today)
+    # This is a more complex query, so we'll do a simple version
+    # Get all sale items from today and annotate profit
+    profit_makers_query = SaleItem.objects.filter(sale__sale_date__date=today).annotate(
+        profit_per_item=(F('price_per_unit') - F('stock_batch__cost_price')) * F('quantity')
+    ).values('product__name').annotate(total_profit=Sum('total_profit')).order_by('-total_profit')[:5]
+
+    profit_makers = list(profit_makers_query)
+    
+    # The 'context' is the data we send to the HTML page
     context = {
         'todays_profit': todays_profit,
-        'todays_revenue': todays_revenue,
-        'todays_cogs': todays_cogs,
-        'gross_margin': round(gross_margin, 2),
+        'revenue_vs_cogs': revenue_vs_cogs,
+        'profit_makers': profit_makers,
     }
     
     return render(request, 'APP/finance_tracker.html', context)
 
 def ai_advisor(request):
     """
-    This view finds and displays all alerts for the "AI Advisor" page.
+    This page shows 'Reorder Suggestions', 'Waste Alerts', and 'Trend Alerts'.
     """
     
-    # --- This logic should be run regularly (e.g., daily) ---
-    # For the hackathon, we can just run it when the page is visited.
-    
-    # 1. Find Reorder Alerts
-    products_to_reorder = Product.objects.filter(current_stock__lt=F('reorder_level'))
-    for product in products_to_reorder:
-        Alert.objects.get_or_create(
-            product=product,
-            alert_type='REORDER',
-            defaults={'message': f"Stock low ({product.current_stock}). Reorder level is {product.reorder_level}."}
-        )
-        
-    # 2. Find Waste Alerts (Expiry)
-    two_weeks_from_now = today + timedelta(days=14)
-    expiring_batches = StockBatch.objects.filter(
-        expiry_date__lte=two_weeks_from_now,
-        quantity__gt=0
-    )
-    for batch in expiring_batches:
-        Alert.objects.get_or_create(
-            product=batch.product,
-            alert_type='WASTE',
-            defaults={'message': f"{batch.quantity} units expiring on {batch.expiry_date.strftime('%Y-%m-%d')}."}
-        )
+    # 1. Get Waste Alerts (expiring within 7 days)
+    seven_days_from_now = timezone.now() + timezone.timedelta(days=7)
+    waste_alerts = StockBatch.objects.filter(
+        expiry_date__lte=seven_days_from_now,
+        current_stock__gt=0
+    ).order_by('expiry_date')
 
-    # --- End of alert generation ---
+    # 2. Get Reorder Suggestions (low stock)
+    # We find products where total stock is below its reorder_level
+    products = Product.objects.all()
+    reorder_suggestions = []
+    for product in products:
+        total_stock = product.stock_batches.aggregate(total=Sum('current_stock'))['total'] or 0
+        if total_stock < product.reorder_level:
+            reorder_suggestions.append({
+                'name': product.name,
+                'current_stock': total_stock,
+                'reorder_level': product.reorder_level
+            })
 
-    # Get all unread alerts to display on the page
-    all_alerts = Alert.objects.filter(is_viewed=False).order_by('-created_at')
-    
-    reorder_alerts = all_alerts.filter(alert_type='REORDER')
-    waste_alerts = all_alerts.filter(alert_type='WASTE')
-    trend_alerts = all_alerts.filter(alert_type='TREND') # You can add logic for this later
+    # 3. Trend Alerts (e.g., selling faster than usual)
+    # This requires more complex logic (e.g., comparing last 7 days vs 30 days)
+    # For now, we'll just show a placeholder
+    trend_alerts = [
+        {'product_name': 'Placeholder Product', 'message': 'Selling 50% faster than average.'}
+    ]
+
+    # You would also create Alert objects here to save them
+    # Example: Alert.objects.create(alert_type='WASTE', message='...')
 
     context = {
-        'reorder_alerts': reorder_alerts,
         'waste_alerts': waste_alerts,
+        'reorder_suggestions': reorder_suggestions,
         'trend_alerts': trend_alerts,
     }
+    
     return render(request, 'APP/ai_advisor.html', context)
 
 
+# --- This is your API Endpoint ---
+
 def scan_product_api(request, barcode):
     """
-    This is an API endpoint for your scanner.
-    It takes a barcode and returns product details as JSON.
-    This is what the "Product Found?" box in your flowchart does.
+    This is an API endpoint. It doesn't show a webpage.
+    It returns JSON data for your phone scanner.
     """
+    data = {}
     try:
+        # Find the product by its barcode
         product = Product.objects.get(barcode=barcode)
-        # "Yes" path: Product Found
-        data = {
-            'status': 'found',
-            'product_id': product.id,
-            'product_name': product.product_name,
-            'selling_price': product.selling_price,
-            'stock': product.current_stock,
-        }
+        
+        # Find the most relevant stock batch (e.g., oldest one with stock)
+        # This uses FIFO (First-In, First-Out)
+        available_stock = StockBatch.objects.filter(
+            product=product, 
+            current_stock__gt=0
+        ).order_by('expiry_date').first() # Sell oldest/soonest-to-expire first
+
+        if available_stock:
+            data = {
+                'status': 'found',
+                'product_id': product.id,
+                'name': product.name,
+                'description': product.description,
+                'selling_price': product.selling_price,
+                'stock_batch_id': available_stock.id,
+                'available_stock_in_batch': available_stock.current_stock
+            }
+        else:
+            data = {
+                'status': 'not_in_stock',
+                'name': product.name,
+                'message': 'This product is out of stock.'
+            }
+            
     except Product.DoesNotExist:
-        # "No" path: Product Not Found
+        # Product's barcode isn't in our database
         data = {
             'status': 'not_found',
-            'message': 'Product not found. Would you like to add it?'
+            'message': 'Barcode not found in database.'
         }
-    
-    return JsonResponse(data)
+    except Exception as e:
+        data = {
+            'status': 'error',
+            'message': str(e)
+        }
 
-#
-# --- You will also need functions for ---
-#
-# def add_product_page(request):
-#   # Show a form to add a new product (your "Show Add Product Page")
-#   pass
-#
-# def finish_sale(request):
-#   # This will be a complex view that takes the final cart (as JSON from the frontend)
-#   # and creates the Sale and SaleItem objects in the database.
-#   # (This matches your "Finish Sale" box)
-#   pass
-#
+def login_page(request):
+    # This view just shows the login page.
+    return render(request, 'APP/login.html')
+
+    
+    # Return the data as a JSON object
+    return JsonResponse(data)

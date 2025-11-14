@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>Finance Tracker</h1>
+    <p><a href="/">&larr; Back to Home</a></p>
+
+    <h2>Today's Profit</h2>
+    <p style="font-size: 24px;">${{ todays_profit }}</p>
+
+    <h2>Revenue vs COGS</h2>
+    <ul>
+        <li>Revenue: ${{ revenue_vs_cogs.revenue }}</li>
+        <li>Cost of Goods: ${{ revenue_vs_cogs.cogs }}</li>
+    </ul>
+
+    <h2>Top Profit Makers Today</h2>
+    <ol>
+        {% for item in profit_makers %}
+            <li>{{ item.product__name }} - ${{ item.total_profit }}</li>
+        {% empty %}
+            <li>No sales yet today.</li>
+        {% endfor %}
+    </ol>
+
+</body>
+</html>
