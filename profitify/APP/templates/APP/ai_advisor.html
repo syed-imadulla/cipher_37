@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Advisor</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>AI Advisor</h1>
+    <p><a href="/">&larr; Back to Home</a></p>
+
+    <h2>Waste Alerts (Expiring in 7 Days)</h2>
+    <ul>
+        {% for item in waste_alerts %}
+            <li>{{ item.product.name }} (Batch: {{ item.batch_number }}) - Expires: {{ item.expiry_date|date:"Y-m-d" }} - Stock: {{ item.current_stock }}</li>
+        {% empty %}
+            <li>No products expiring soon.</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Reorder Suggestions (Low Stock)</h2>
+    <ul>
+        {% for item in reorder_suggestions %}
+            <li>{{ item.name }} - Current Stock: {{ item.current_stock }} (Reorder at {{ item.reorder_level }})</li>
+        {% empty %}
+            <li>All products are well-stocked.</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Trend Alerts</h2>
+    <ul>
+        {% for item in trend_alerts %}
+            <li>{{ item.product_name }} - {{ item.message }}</li>
+        {% empty %}
+            <li>No significant trends detected.</li>
+        {% endfor %}
+    </ul>
+
+</body>
+</html>
