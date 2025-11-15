@@ -22,9 +22,5 @@ urlpatterns = [
     path('api/scan-check/', views.scan_barcode_api, name='scan-barcode-api'),
     path('api/scan/<str:barcode>/', views.scan_product_api, name='api-scan-product'),
 
-    # GENERAL TEST / UPDATE API (if you still need it)
-    path('api/update-item/', views.update_item, name='update-item'),
-
-    # FINAL: SELL PRODUCT API (THIS IS WHAT FRONTEND NEEDS)
-    path('api/sell-product/', views.sell_product_api, name='sell-product-api'),
+    path('api/generate-summary/', views.generate_ai_summary, name='generate-ai-summary'),
 ]
