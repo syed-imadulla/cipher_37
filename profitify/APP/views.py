@@ -276,18 +276,51 @@ def scan_barcode_api(request):
 
 def add_product(request):
     """
-    Handles both showing the 'add product' form and saving the new product.
+    Handles both showing the 'add product' form and saving the new product 
+    and its initial stock batch.
     """
-    context = {} # <-- FIXED: Define context for the GET request
+    context = {}
     
     if request.method == 'POST':
-        # --- (The rest of your POST saving logic would go here) ---
-        print("Form submitted!")
-        return redirect('dashboard-page')
+        try:
+            with transaction.atomic():
+                # 1. Create the new Product record
+                new_product = Product.objects.create(
+                    product_name=request.POST.get('product_name'),
+                    barcode=request.POST.get('barcode'),
+                    selling_price=float(request.POST.get('selling_price')),
+                    cost_price=float(request.POST.get('cost_price')),
+                    reorder_level=int(request.POST.get('reorder_level')),
+                    # Add any other Product fields here
+                )
+                
+                # 2. Create the initial Stock Batch for the product
+                initial_quantity = int(request.POST.get('initial_stock_quantity', 0))
+                
+                if initial_quantity > 0:
+                    StockBatch.objects.create(
+                        product=new_product,
+                        quantity=initial_quantity,
+                        cost_price=new_product.cost_price, # Use the product's cost price
+                        expiry_date=request.POST.get('expiry_date'), # Assuming this field is in the form
+                        date_added=timezone.now().date(),
+                    )
+                
+                # Success! Redirect to the dashboard after adding
+                return redirect('dashboard-page')
+        
+        except ValueError:
+            context['error_message'] = "Invalid number format for price, level, or quantity."
+        except Exception as e:
+            context['error_message'] = f"Database error during creation: {str(e)}"
+        
+        # If any error occurred, re-render the form with the error message
+        return render(request, 'APP/add_product.html', context)
+        
     else:
         # This is the GET request to show the form
         return render(request, 'APP/add_product.html', context)
-
+        
 def sell_product(request, product_id):
     """
     Handles showing the 'sell product' page (pre-filled) and saving the sale.
