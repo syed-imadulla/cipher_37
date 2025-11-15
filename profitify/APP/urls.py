@@ -22,4 +22,6 @@ urlpatterns = [
 
     # This is the API endpoint for your barcode scanner
     path('api/scan/<str:barcode>/', views.scan_product_api, name='api-scan-product'),
+
+    path('api/generate-summary/', views.generate_ai_summary, name='generate-ai-summary'),
 ]
