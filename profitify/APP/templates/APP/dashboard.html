@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Profitify</title>
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -82,6 +81,13 @@
         .logo i {
             margin-right: 10px;
             font-size: 1.8rem;
+        }
+
+        .logo a {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--primary);
         }
 
         .nav-links {
@@ -581,11 +587,13 @@
         <div class="container">
             <nav class="navbar">
                 <div class="logo">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Profitify</span>
+                    <a href="index.html">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Profitify</span>
+                    </a>
                 </div>
                 <div class="auth-buttons">
-                    <a href="{% url 'landing-page' %}" class="btn btn-outline">Back to Home</a>
+                    <a href="index.html" class="btn btn-outline">Back to Home</a>
                 </div>
             </nav>
         </div>
@@ -605,7 +613,7 @@
                     </div>
                     <h3>Settings</h3>
                     <p>Configure your account preferences, notifications, and system settings.</p>
-                    <a href="{% url 'settings-page' %}" class="btn btn-primary">Open Settings</a>
+                    <a href="settings.html" class="btn btn-primary">Open Settings</a>
                 </div>
 
                 <div class="dashboard-card">
@@ -614,7 +622,7 @@
                     </div>
                     <h3>AI Advisor</h3>
                     <p>Get personalized recommendations for inventory, pricing, and business growth.</p>
-                    <a href="{% url 'ai-advisor' %}" class="btn btn-primary">Consult AI</a>
+                    <a href="AI-Advisor.html" class="btn btn-primary">Consult AI</a>
                 </div>
 
                 <div class="dashboard-card">
@@ -632,7 +640,7 @@
                     </div>
                     <h3>Finance Tracker</h3>
                     <p>Monitor revenue, expenses, and profit margins with detailed analytics.</p>
-                    <a href="{% url 'finance-tracker' %}" class="btn btn-primary">Track Finances</a>
+                    <a href="finance-tracker.html" class="btn btn-primary">Track Finances</a>
                 </div>
 
                 <div class="dashboard-card">
@@ -645,198 +653,35 @@
                 </div>
             </div>
             <div id="scanModal" class="modal">
-    <!-- NOTE: You must include the QuaggaJS library in the <head> of your dashboard.html -->
-<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2 class="modal-title">Choose Action</h2>
+                    <p class="modal-subtitle">What would you like to do with the scanned product?</p>
 
-<!-- ... Your friend's existing beautiful HTML... -->
+                    <div class="action-buttons">
+                        <div class="action-btn" id="sellProductBtn">
+                            <div class="action-icon sell-icon">
+                                <i class="fas fa-cash-register"></i>
+                            </div>
+                            <div class="action-text">
+                                <h4>Sell Product</h4>
+                                <p>Process a sale for existing inventory</p>
+                            </div>
+                        </div>
 
-<!-- Find the section where your Scan Modal starts (e.g., <div id="scanModal") -->
-<div id="scanModal" class="modal">
-    <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h2 id="scanner-title">Start Scanning</h2>
-        
-        <!-- 1. CAMERA/VIDEO ELEMENT -->
-        <div id="scanner-container">
-            <div id="interactive" class="viewport">
-                <!-- The video stream will load here -->
+                        <div class="action-btn" id="addProductBtn">
+                            <div class="action-icon add-icon">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <div class="action-text">
+                                <h4>Add Product</h4>
+                                <p>Add new product to your inventory</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="scan-feedback">Scanning... Point camera at barcode.</div>
-            
-            <!-- 2. MANUAL ENTRY FORM (Hidden by default) -->
-            <button id="manualEntryBtn" class="btn btn-secondary" style="margin-top: 10px;">Enter Manually</button>
-            <form id="manualScanForm" style="display:none; margin-top: 15px;">
-                {% csrf_token %}
-                <input type="text" id="manualBarcodeInput" name="barcode" placeholder="Enter barcode..." required>
-                <button type="submit" class="btn btn-primary">Check Barcode</button>
-            </form>
-        </div>
-        
-    </div>
-</div>
 
-<!-- ... Rest of your friend's HTML ... -->
-
-<!-- 3. PASTE THIS JAVASCRIPT AT THE BOTTOM OF THE <body> -->
-<script>
-    // Variables for the scanner
-    const modal = document.getElementById('scanModal');
-    const interactive = document.getElementById('interactive');
-    const feedback = document.getElementById('scan-feedback');
-    const manualForm = document.getElementById('manualScanForm');
-    const manualBtn = document.getElementById('manualEntryBtn');
-    
-    // API URL from Django's naming system
-    const scanApiUrl = "{% url 'scan-barcode-api' %}";
-    // Get the CSRF token from a hidden input or meta tag (assumes one exists)
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
-
-    // Function to initialize and start the QuaggaJS scanner
-    function startScanner() {
-        feedback.innerText = "Initializing camera...";
-        
-        Quagga.init({
-            inputStream : {
-                name : "Live",
-                type : "LiveStream",
-                target: interactive, // The HTML element where the video is displayed
-                constraints: {
-                    facingMode: "environment" // Use back camera on mobile devices
-                }
-            },
-            decoder : {
-                readers : ["ean_reader", "code_128_reader", "upc_reader"] // Common barcode types
-            }
-        }, function(err) {
-            if (err) {
-                console.error("Quagga initialization failed:", err);
-                feedback.innerText = "Camera failed to start. Trying manual entry mode...";
-                showManualEntry();
-                return;
-            }
-            Quagga.start();
-            feedback.innerText = "Scanning... Hold steady.";
-        });
-        
-        // Listen for successful scans
-        Quagga.onDetected(function(result) {
-            // Stop scanning immediately after the first successful read
-            Quagga.stop(); 
-            
-            const barcode = result.codeResult.code;
-            feedback.innerText = `Barcode Detected: ${barcode}. Checking database...`;
-            
-            // Send the scanned barcode to your Django API
-            sendBarcodeToDjango(barcode);
-        });
-    }
-
-    // Function to handle the API call to Django
-    async function sendBarcodeToDjango(barcode) {
-        try {
-            const response = await fetch(scanApiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken // Django security token
-                },
-                body: JSON.stringify({ barcode: barcode })
-            });
-
-            if (!response.ok) {
-                 throw new Error(`Server responded with status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-           if (data.status === 'not_found') {
-                // Barcode not in database, redirecting to ADD page
-                feedback.innerText = `Barcode ${barcode} not found. Redirecting to Add Product page...`;
-            } else {
-                // Barcode found, redirecting to SELL page
-                feedback.innerText = `Product found. Redirecting to Sell Product page...`;
-            }
-            
-            // Perform the redirect based on the API response
-            setTimeout(() => { // Use a slight delay so the user sees the message
-                window.location.href = data.redirect_url;
-            }, 500); 
-
-        }
-        } catch (error) {
-        console.error("API call failed:", error);
-        
-        // --- DISPLAY CLEAR ERROR MESSAGE AND SHOW MANUAL ENTRY ---
-        
-        // Stop any running camera just in case
-        if (Quagga) { Quagga.stop(); } 
-        
-        feedback.innerText = `Connection Error: ${error.message}. Please try manual entry.`;
-        showManualEntry(); // Show the manual form on critical error
-    }
-}
-
-function showManualEntry() {
-    if (typeof Quagga !== 'undefined') { Quagga.stop(); } // Stop the camera if it's running
-    
-    // Hide the interactive scanner view
-    interactive.style.display = 'none'; 
-    
-    // Show the manual input form
-    manualForm.style.display = 'block'; 
-    
-    // Update feedback text
-    feedback.innerText = "Please enter the barcode number below.";
-    
-    // Hide the manual button, as the form is now visible
-    manualBtn.style.display = 'none'; 
-}
-    
-    // Function to show the manual form
-    function showManualEntry() {
-        Quagga.stop(); // Stop the camera if it's running
-        interactive.style.display = 'none'; // Hide video element
-        manualForm.style.display = 'block'; // Show manual form
-        manualBtn.style.display = 'none'; // Hide manual button
-    }
-    
-    // --- EVENT LISTENERS ---
-    
-    // 1. When the "Start Scanning" button on the dashboard is clicked
-    document.querySelector('.dashboard-grid .btn-primary').addEventListener('click', function(e) {
-        e.preventDefault();
-        modal.style.display = 'block';
-        interactive.style.display = 'block'; // Ensure video is visible
-        manualForm.style.display = 'none'; // Ensure form is hidden
-        manualBtn.style.display = 'block'; // Ensure manual button is visible
-        startScanner();
-    });
-    
-    // 2. Manual Entry button handler
-    manualBtn.addEventListener('click', showManualEntry);
-    
-    // 3. Manual Form Submission
-    manualForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const barcode = document.getElementById('manualBarcodeInput').value;
-        sendBarcodeToDjango(barcode);
-    });
-
-    // 4. Close modal listener
-    document.querySelector('.close-modal').addEventListener('click', function() {
-        modal.style.display = 'none';
-        if (Quagga) { Quagga.stop(); } // Always stop the camera when closing
-    });
-    
-    // 5. Global handler to stop camera when modal closes unexpectedly (e.g., clicking outside)
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-            if (Quagga) { Quagga.stop(); }
-        }
-    }
-
-</script>
         </div>
     </section>
 
@@ -860,16 +705,15 @@ function showManualEntry() {
                     <ul class="footer-links">
                         <li><a href="index.html#features">Features</a></li>
                         <li><a href="index.html#about">How It Works</a></li>
-                        <li><a href="#">Pricing</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-column">
                     <h3>Support</h3>
                     <ul class="footer-links">
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">FAQ</a></li>
+                        <li><a href="index.html#contact">Contact Us</a></li>
+                        <li><a href="index.html#contact">Help Center</a></li>
+                        <li><a href="index.html#contact">FAQ</a></li>
                     </ul>
                 </div>
 
@@ -883,177 +727,98 @@ function showManualEntry() {
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2024 Profitify. All rights reserved.</p>
+                <p>&copy; 2025 Profitify. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
     <script>
-    // ----------------------------------------------------------------------
-    // 1. VARIABLE DEFINITIONS 
-    // ----------------------------------------------------------------------
-    
-    // Scanner Elements (These rely on the new modal HTML structure)
-    const modal = document.getElementById('scanModal');
-    const interactive = document.getElementById('interactive');
-    const feedback = document.getElementById('scan-feedback');
-    const manualForm = document.getElementById('manualScanForm');
-    const manualBtn = document.getElementById('manualEntryBtn');
+        // Simple JavaScript for interactive elements
+        document.addEventListener('DOMContentLoaded', function () {
+            // Add animation to dashboard cards on scroll
+            const dashboardCards = document.querySelectorAll('.dashboard-card');
 
-    // Button Finding Logic
-    const scanCards = document.querySelectorAll('.dashboard-card');
-    let scanCardButton = null;
-    
-    // API Setup
-    const scanApiUrl = "{% url 'scan-barcode-api' %}";
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
 
-    // Find the "Start Scanning" button (using your friend's selector)
-    scanCards.forEach(card => {
-        if (card.querySelector('h3').textContent === 'Scan Page') {
-            // Found the card, now get the button inside it
-            scanCardButton = card.querySelector('.btn-primary');
-        }
-    });
-
-
-    // ----------------------------------------------------------------------
-    // 2. CORE FUNCTIONS
-    // ----------------------------------------------------------------------
-    
-    // Function to switch to manual input mode (Used when camera fails or on button click)
-    function showManualEntry() {
-        if (typeof Quagga !== 'undefined') { Quagga.stop(); } 
-        interactive.style.display = 'none'; 
-        manualForm.style.display = 'block'; 
-        feedback.innerText = "Please enter the barcode number below.";
-        manualBtn.style.display = 'none'; 
-    }
-
-    // Function to initialize and start the QuaggaJS scanner
-    function startScanner() {
-        feedback.innerText = "Initializing camera...";
-        
-        Quagga.init({
-            inputStream : {
-                name : "Live", type : "LiveStream", target: interactive,
-                constraints: { facingMode: "environment" }
-            },
-            decoder : { readers : ["ean_reader", "code_128_reader", "upc_reader"] }
-        }, function(err) {
-            if (err) {
-                console.error("Quagga initialization failed:", err);
-                feedback.innerText = "Camera failed to start. Falling back to manual entry.";
-                showManualEntry();
-                return;
-            }
-            Quagga.start();
-            feedback.innerText = "Scanning... Hold steady.";
-        });
-        
-        Quagga.onDetected(function(result) {
-            Quagga.stop(); 
-            const barcode = result.codeResult.code;
-            feedback.innerText = `Barcode Detected: ${barcode}. Checking database...`;
-            sendBarcodeToDjango(barcode);
-        });
-    }
-
-    // Function to handle the API call to Django
-    async function sendBarcodeToDjango(barcode) {
-        try {
-            const response = await fetch(scanApiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({ barcode: barcode })
+            dashboardCards.forEach(card => {
+                card.style.opacity = 0;
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(card);
             });
 
-            if (!response.ok) {
-                 throw new Error(`Server responded with status: ${response.status}`);
+            // Add subtle animation to stats
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach((item, index) => {
+                item.style.transitionDelay = `${index * 0.1}s`;
+            });
+        });
+        // Scan Modal Functionality - Only for Scan Page card
+        document.addEventListener('DOMContentLoaded', function () {
+            const scanModal = document.getElementById('scanModal');
+            const closeModal = document.querySelector('.close-modal');
+            const sellProductBtn = document.getElementById('sellProductBtn');
+            const addProductBtn = document.getElementById('addProductBtn');
+
+            // Find the Scan Page card specifically by its content
+            const scanCards = document.querySelectorAll('.dashboard-card');
+            let scanCardButton = null;
+
+            scanCards.forEach(card => {
+                if (card.querySelector('h3').textContent === 'Scan Page') {
+                    scanCardButton = card.querySelector('.btn-primary');
+                }
+            });
+
+            // Open modal when Scan Page card is clicked
+            if (scanCardButton) {
+                scanCardButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scanModal.style.display = 'flex';
+                });
             }
 
-            const data = await response.json();
-            
-            if (data.redirect_url) {
-                const statusText = data.status === 'not_found' 
-                    ? `Barcode ${barcode} not found. Redirecting to Add Product...`
-                    : `Product found. Redirecting to Sell Product...`;
+            // Close modal when X is clicked
+            closeModal.addEventListener('click', function () {
+                scanModal.style.display = 'none';
+            });
 
-                feedback.innerText = statusText;
-                
-                setTimeout(() => { 
-                    window.location.href = data.redirect_url;
-                }, 500); 
+            // Close modal when clicking outside
+            scanModal.addEventListener('click', function (e) {
+                if (e.target === scanModal) {
+                    scanModal.style.display = 'none';
+                }
+            });
 
-            } else {
-                feedback.innerText = "API error: No redirect URL found.";
-            }
+            // Sell Product action
+            sellProductBtn.addEventListener('click', function () {
+                window.location.href = '/sell_product/';
+                // Add your sell product logic here
+                scanModal.style.display = 'none';
+            });
 
-        } catch (error) {
-            console.error("API call failed:", error);
-            
-            if (typeof Quagga !== 'undefined') { Quagga.stop(); } 
-            
-            feedback.innerText = `Connection Error: ${error.message}. Please try manual entry.`;
-            showManualEntry(); 
-        }
-    }
+            // Add Product action
+            addProductBtn.addEventListener('click', function () {
+                // Redirect to add-product.html
+                window.location.href = '/add_product/';
+                scanModal.style.display = 'none';
+            });
 
-
-    // ----------------------------------------------------------------------
-    // 3. EVENT LISTENERS (Interaction handlers)
-    // ----------------------------------------------------------------------
-
-    // Listener for the "Start Scanning" button on the dashboard
-    if (scanCardButton) { 
-        scanCardButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // 1. Show the modal
-            modal.style.display = 'flex';
-            
-            // 2. Set up the display for the scanner mode
-            interactive.style.display = 'block'; 
-            manualForm.style.display = 'none';
-            manualBtn.style.display = 'block';
-            
-            // 3. Launch the camera!
-            startScanner(); 
+            // Close with Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    scanModal.style.display = 'none';
+                }
+            });
         });
-    }
-    
-    // 2. Manual Entry button handler (The button visible initially)
-    if (manualBtn) {
-        manualBtn.addEventListener('click', showManualEntry);
-    }
-    
-    // 3. Manual Form Submission (The hidden form)
-    if (manualForm) {
-        manualForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const barcode = document.getElementById('manualBarcodeInput').value;
-            sendBarcodeToDjango(barcode);
-        });
-    }
-    
-    // 4. Close modal listener (for the 'X' button)
-    document.querySelector('.close-modal').addEventListener('click', function() {
-        modal.style.display = 'none';
-        if (typeof Quagga !== 'undefined') { Quagga.stop(); } 
-    });
-    
-    // 5. Global handler to stop camera when modal closes unexpectedly
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-            if (typeof Quagga !== 'undefined') { Quagga.stop(); }
-        }
-    }
-    
-</script>
+    </script>
 </body>
 
 </html>

@@ -321,43 +321,42 @@ def add_product(request):
         # This is the GET request to show the form
         return render(request, 'APP/add_product.html', context)
         
+# Replace the existing sell_product view with this exact block
 def sell_product(request, product_id):
     """
     Handles showing the 'sell product' page (pre-filled) and saving the sale.
-    This function now contains the full sales and inventory logic.
     """
     from .models import Product, Sale, SaleItem, StockBatch
     from django.db import transaction
-    
-    # --- GET DATA FOR DISPLAY (Runs for both GET and POST) ---
+
+    # Try to find the product, otherwise redirect to dashboard
     try:
         product = Product.objects.get(id=product_id)
     except Product.DoesNotExist:
         return redirect('dashboard-page')
-        
-    # Get the best batch to sell from (First-In, First-Out/Soonest Expiry)
+
+    # Get the best batch to sell from (FIFO / nearest expiry)
     available_batch = StockBatch.objects.filter(
         product=product,
         quantity__gt=0
-    ).order_by("expiry_date").first()
+    ).order_by('expiry_date').first()
 
-    # Determine template name based on your file system (assuming sell-product.html)
-    template_name = 'APP/sell-product.html'
-    
+    # Use the template that actually exists in your project
+    template_name = 'APP/sell_product.html'   # <-- corrected underscore
+
     context = {
         'product': product,
         'batch': available_batch,
         'error_message': None,
     }
 
-    # --- POST REQUEST HANDLER (Data Saving) ---
     if request.method == 'POST':
         try:
             quantity_sold = int(request.POST.get('quantity_sold'))
         except (ValueError, TypeError):
             context['error_message'] = "Invalid quantity entered."
             return render(request, template_name, context)
-            
+
         if quantity_sold <= 0:
             context['error_message'] = "Quantity must be greater than zero."
             return render(request, template_name, context)
@@ -366,45 +365,40 @@ def sell_product(request, product_id):
             context['error_message'] = f"Not enough stock. Available: {available_batch.quantity if available_batch else 0}"
             return render(request, template_name, context)
 
-        # Save the transaction atomically
         try:
             with transaction.atomic():
-                
-                # Calculate metrics
                 cost = available_batch.cost_price
                 revenue = product.selling_price
-                
+
                 total_amount = revenue * quantity_sold
                 total_profit = (revenue - cost) * quantity_sold
-                
-                # Create the Sale record
+
                 sale = Sale.objects.create(
                     total_amount=total_amount,
                     total_profit=total_profit,
-                    user_id="scanner_user" 
+                    user_id="scanner_user"
                 )
 
-                # Create the SaleItem record
                 SaleItem.objects.create(
                     sale=sale,
                     product=product,
-                    # Note: Assuming your SaleItem model has a 'stock_batch' field
-                    # stock_batch=available_batch, 
                     quantity=quantity_sold,
                     price_at_sale=revenue,
                     cost_at_sale=cost
                 )
 
-                # Update the Stock Batch (inventory reduction)
                 available_batch.quantity -= quantity_sold
                 available_batch.save()
-            
-            # Success! Redirect to the dashboard
-            return redirect('dashboard-page') 
+
+            return redirect('dashboard-page')
         except Exception as e:
             context['error_message'] = f"Transaction failed: {str(e)}"
             return render(request, template_name, context)
 
-
-    # --- GET REQUEST (Form Display) ---
     return render(request, template_name, context)
+
+# Replace or add this function in APP/views.py
+def sell_product_list(request):
+    # Render the generic sell page (list/search) using the APP template folder
+    return render(request, 'APP/sell_product.html')
+
