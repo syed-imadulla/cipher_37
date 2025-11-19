@@ -278,7 +278,6 @@
         }
 
         /* Scanner card (styled to match page) */
-        /* Scanner card (styled to match page) */
         .scanner-section {
             background: var(--card-bg);
             border-radius: 16px;
@@ -316,7 +315,6 @@
             box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
             border: 1px solid rgba(255, 255, 255, 0.03);
             position: relative;
-            /* Added for proper video positioning */
         }
 
         /* Ensure Quagga video/canvas fills the container properly */
@@ -630,15 +628,14 @@
                 <span>Select a method above to add a product</span>
             </div>
 
-            <!-- Scanner Section (matches page styling) -->
             <!-- Scanner Section -->
             <div id="scannerSection" class="scanner-section active" aria-hidden="false">
                 <div class="scanner-inner">
                     <!-- Quagga preview target -->
                     <div id="scanner-preview" aria-live="polite" role="region" title="Barcode camera preview">
                         <div class="camera-loading">
-                            <i class="fas fa-camera"></i>
-                            <div>Camera preview will appear here</div>
+                            <!-- <i class="fas fa-camera"></i> -->
+                            <!-- <div>Camera preview will appear here</div> -->
                         </div>
                     </div>
 
@@ -826,7 +823,7 @@
             // Elements
             const modeCards = document.querySelectorAll('.mode-card');
             const scannerSection = document.getElementById('scannerSection');
-            const previewBox = document.getElementById('scanner-preview'); // Quagga target
+            const previewBox = document.getElementById('scanner-preview');
             const startBtn = document.getElementById('start-scanner');
             const stopBtn = document.getElementById('stop-scanner');
             const manualToggle = document.getElementById('manual-toggle');
@@ -839,12 +836,258 @@
 
             const barcodeInput = document.getElementById('barcodeNumber');
 
-            // Mock DB
-            const productDatabase = {
-                '123456789012': { name: 'Premium Wireless Headphones', brand: 'AudioTech', category: 'electronics', description: 'High-quality wireless headphones with noise cancellation', costPrice: 45.00, sellingPrice: 89.99, weight: 0.25, dimensions: '18×15×8', ingredients: 'Plastic, Metal, Electronics' },
-                '234567890123': { name: 'Organic Green Tea', brand: 'NatureLeaf', category: 'food', description: 'Premium organic green tea leaves', costPrice: 8.50, sellingPrice: 15.99, weight: 0.1, dimensions: '12×8×20', ingredients: 'Organic Green Tea Leaves' },
-                '345678901234': { name: 'Yoga Mat Premium', brand: 'FlexFit', category: 'sports', description: 'Non-slip yoga mat with carrying strap', costPrice: 22.00, sellingPrice: 39.99, weight: 1.2, dimensions: '183×61×0.6', ingredients: 'TPE Material, Natural Rubber' }
+            // Open Food Facts API Integration - Fixed data parsing
+            const productApis = {
+                // Primary: Open Food Facts
+                openFoodFacts: async (barcode) => {
+                    try {
+                        setStatus('info', '<i class="fas fa-spinner fa-spin"></i><span>Searching Open Food Facts database...</span>');
+
+                        const apiUrl = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
+
+                        const response = await fetch(apiUrl);
+                        const data = await response.json();
+
+                        if (data.status === 1 && data.product) {
+                            const product = data.product;
+
+                            // Get the most common fields
+                            const name = product.product_name || product.product_name_en || '';
+                            const brand = product.brands || product.brand_owner || '';
+                            const category = product.categories || '';
+
+                            return {
+                                name: name,
+                                brand: brand,
+                                category: category,
+                                description: `Product from ${brand}`,
+                                weight: null,
+                                dimensions: '',
+                                ingredients: product.ingredients_text || '',
+                                success: true,
+                                source: 'Open Food Facts'
+                            };
+                        }
+                        return { success: false, error: 'Product not found' };
+                    } catch (error) {
+                        return { success: false, error: 'Network error' };
+                    }
+                },
+
+                // Extract the best available product name
+                extractBestName: function (product) {
+                    // Priority order for product names
+                    if (product.product_name) return product.product_name;
+                    if (product.product_name_en) return product.product_name_en;
+                    if (product.product_name_fr) return product.product_name_fr;
+                    if (product.product_name_de) return product.product_name_de;
+                    if (product.product_name_es) return product.product_name_es;
+
+                    // Check for any language variant
+                    for (const key in product) {
+                        if (key.startsWith('product_name_') && product[key]) {
+                            return product[key];
+                        }
+                    }
+
+                    return product.generic_name || product.abbreviated_product_name || '';
+                },
+
+                // Extract the best available brand
+                extractBestBrand: function (product) {
+                    if (product.brands) return product.brands;
+                    if (product.brand_owner) return product.brand_owner;
+                    if (product.manufacturer) return product.manufacturer;
+
+                    return '';
+                },
+
+                // Extract the best available category
+                extractBestCategory: function (product) {
+                    if (product.categories) return product.categories;
+                    if (product.categories_tags && product.categories_tags.length > 0) {
+                        return product.categories_tags[0].replace('en:', '');
+                    }
+                    return '';
+                },
+
+                // Generate intelligent description from product data
+                generateDescription: function (product) {
+                    const parts = [];
+
+                    const brand = this.extractBestBrand(product);
+                    if (brand) parts.push(`Brand: ${brand}`);
+
+                    if (product.quantity) parts.push(`Size: ${product.quantity}`);
+                    if (product.packaging) parts.push(`Packaging: ${product.packaging}`);
+                    if (product.countries) parts.push(`Countries: ${product.countries}`);
+
+                    // Add nutrition info if available
+                    if (product.nutriscore_grade) {
+                        parts.push(`Nutri-Score: ${product.nutriscore_grade.toUpperCase()}`);
+                    }
+                    if (product.ecoscore_score) {
+                        parts.push(`Eco-Score: ${product.ecoscore_score}/100`);
+                    }
+
+                    // Add generic name if available
+                    if (product.generic_name) {
+                        parts.push(`Type: ${product.generic_name}`);
+                    }
+
+                    return parts.length > 0 ? parts.join(' • ') : 'Product information from Open Food Facts';
+                },
+
+                // Extract weight from quantity field
+                extractWeight: function (quantity) {
+                    if (!quantity) return null;
+
+                    // Common weight patterns
+                    const weightPatterns = [
+                        /(\d+(?:\.\d+)?)\s*kg/i,
+                        /(\d+(?:\.\d+)?)\s*k\s*g/i,
+                        /(\d+(?:\.\d+)?)\s*g/i,
+                        /(\d+(?:\.\d+)?)\s*grams/i,
+                        /(\d+(?:\.\d+)?)\s*ml/i,
+                        /(\d+(?:\.\d+)?)\s*l/i,
+                        /(\d+(?:\.\d+)?)\s*liters/i
+                    ];
+
+                    for (const pattern of weightPatterns) {
+                        const match = quantity.match(pattern);
+                        if (match) {
+                            let weight = parseFloat(match[1]);
+
+                            // Convert to kg if needed
+                            if (pattern.toString().includes('g') && !pattern.toString().includes('kg')) {
+                                weight = weight / 1000; // Convert grams to kg
+                            } else if (pattern.toString().includes('ml')) {
+                                weight = weight / 1000; // Convert ml to liters (approximate as kg)
+                            }
+
+                            return parseFloat(weight.toFixed(3));
+                        }
+                    }
+
+                    return null;
+                },
+
+                // Fallback: Smart product data generator based on barcode patterns
+                smartFallback: async function (barcode) {
+                    await new Promise(resolve => setTimeout(resolve, 800));
+
+                    const cleanBarcode = barcode.replace(/\D/g, '');
+                    const barcodeLength = cleanBarcode.length;
+
+                    // Determine product type based on barcode patterns
+                    const productType = this.inferProductType(cleanBarcode);
+
+                    return {
+                        name: `${productType.name} ${cleanBarcode.substring(cleanBarcode.length - 4)}`,
+                        brand: this.inferBrand(cleanBarcode),
+                        category: productType.category,
+                        description: `Generic ${productType.category} product. Barcode: ${barcode}`,
+                        weight: productType.typicalWeight,
+                        dimensions: productType.typicalDimensions,
+                        ingredients: '',
+                        success: true,
+                        source: 'Smart Inference'
+                    };
+                },
+
+                // Infer product type from barcode patterns
+                inferProductType: function (barcode) {
+                    // GS1 prefix patterns (simplified)
+                    const patterns = {
+                        // Food items often start with 0-1 (UPC/EAN)
+                        '0': { category: 'food', name: 'Food Product', typicalWeight: 0.5, typicalDimensions: '15×10×5 cm' },
+                        '1': { category: 'food', name: 'Grocery Item', typicalWeight: 0.4, typicalDimensions: '12×8×4 cm' },
+                        // Books start with 978-979
+                        '978': { category: 'books', name: 'Book', typicalWeight: 0.3, typicalDimensions: '21×15×2 cm' },
+                        '979': { category: 'books', name: 'Publication', typicalWeight: 0.25, typicalDimensions: '20×14×1 cm' },
+                        // General merchandise
+                        '2': { category: 'general', name: 'Consumer Product', typicalWeight: 0.2, typicalDimensions: '10×5×3 cm' },
+                        '3': { category: 'health', name: 'Health Product', typicalWeight: 0.15, typicalDimensions: '8×4×2 cm' },
+                        '4': { category: 'food', name: 'Food Item', typicalWeight: 0.3, typicalDimensions: '12×8×4 cm' },
+                        '5': { category: 'food', name: 'Coupon', typicalWeight: 0.01, typicalDimensions: '8×4×0.1 cm' },
+                        '6': { category: 'general', name: 'Product', typicalWeight: 0.25, typicalDimensions: '10×6×3 cm' },
+                        '7': { category: 'general', name: 'Item', typicalWeight: 0.2, typicalDimensions: '9×5×2 cm' },
+                        '8': { category: 'general', name: 'Goods', typicalWeight: 0.3, typicalDimensions: '11×7×4 cm' },
+                        '9': { category: 'general', name: 'Merchandise', typicalWeight: 0.35, typicalDimensions: '13×9×5 cm' }
+                    };
+
+                    // Check for specific patterns first
+                    for (const [prefix, info] of Object.entries(patterns)) {
+                        if (barcode.startsWith(prefix)) {
+                            return info;
+                        }
+                    }
+
+                    // Default based on length
+                    const defaultTypes = {
+                        8: { category: 'small goods', name: 'Small Item', typicalWeight: 0.1, typicalDimensions: '6×4×2 cm' },
+                        12: { category: 'retail', name: 'Retail Product', typicalWeight: 0.3, typicalDimensions: '12×8×4 cm' },
+                        13: { category: 'standard', name: 'Standard Product', typicalWeight: 0.4, typicalDimensions: '15×10×5 cm' },
+                        14: { category: 'bulk', name: 'Bulk Product', typicalWeight: 1.5, typicalDimensions: '25×15×8 cm' }
+                    };
+
+                    return defaultTypes[barcode.length] || {
+                        category: 'other',
+                        name: 'Product',
+                        typicalWeight: 0.5,
+                        typicalDimensions: '10×10×5 cm'
+                    };
+                },
+
+                // Infer brand from barcode patterns (mock)
+                inferBrand: function (barcode) {
+                    const brandPrefixes = {
+                        '001': 'Coca-Cola',
+                        '002': 'Pepsi',
+                        '003': 'Nestle',
+                        '004': 'Unilever',
+                        '005': 'Procter & Gamble',
+                        '006': 'Kraft',
+                        '007': 'General Mills',
+                        '008': 'Kelloggs',
+                        '009': 'Mars',
+                        '010': 'Mondelez'
+                    };
+
+                    for (const [prefix, brand] of Object.entries(brandPrefixes)) {
+                        if (barcode.startsWith(prefix)) {
+                            return brand;
+                        }
+                    }
+
+                    return 'Generic Brand';
+                }
             };
+
+            // Fetch product info with Open Food Facts as primary source
+            async function fetchProductInfo(barcode) {
+                try {
+                    // Try Open Food Facts first
+                    let productData = await productApis.openFoodFacts(barcode);
+
+                    if (!productData.success) {
+                        // Fallback to smart inference
+                        setStatus('info', '<i class="fas fa-spinner fa-spin"></i><span>Using smart product inference...</span>');
+                        productData = await productApis.smartFallback(barcode);
+                    }
+
+                    if (productData.success) {
+                        setStatus('success', `<i class="fas fa-check-circle"></i><span>Product info loaded from ${productData.source}!</span>`);
+                        return productData;
+                    } else {
+                        setStatus('error', `<i class="fas fa-exclamation-triangle"></i><span>${productData.error}</span>`);
+                        return null;
+                    }
+                } catch (error) {
+                    setStatus('error', `<i class="fas fa-exclamation-triangle"></i><span>Error fetching product info: ${error.message}</span>`);
+                    return null;
+                }
+            }
 
             // Helpers
             function setStatus(type, html) {
@@ -852,14 +1095,17 @@
                 scanStatus.className = 'status-message ' + (type || 'info');
                 scanStatus.innerHTML = html || '';
             }
-            function setScannerText(txt) { if (scannerStatusText) scannerStatusText.textContent = txt; }
+
+            function setScannerText(txt) {
+                if (scannerStatusText) scannerStatusText.textContent = txt;
+            }
 
             function showScanner(show) {
                 if (!scannerSection) return;
                 scannerSection.classList.toggle('active', !!show);
-                // hide manual form when showing scanner
                 if (manualFormSection) manualFormSection.classList.toggle('active', !show);
             }
+
             function showManual(show) {
                 if (!manualFormSection) return;
                 manualFormSection.classList.toggle('active', !!show);
@@ -872,79 +1118,186 @@
                     modeCards.forEach(c => c.classList.remove('active'));
                     card.classList.add('active');
                     const mode = card.getAttribute('data-mode');
-                    if (mode === 'scan') { showScanner(true); setStatus('info', '<i class="fas fa-info-circle"></i><span>Ready to scan. Click Start Scanner.</span>'); }
-                    else { showManual(true); setStatus('info', '<i class="fas fa-edit"></i><span>Enter product information manually below.</span>'); }
+                    if (mode === 'scan') {
+                        showScanner(true);
+                        setStatus('info', '<i class="fas fa-info-circle"></i><span>Ready to scan. Click Start Scanner.</span>');
+                    }
+                    else {
+                        showManual(true);
+                        setStatus('info', '<i class="fas fa-edit"></i><span>Enter product information manually below.</span>');
+                    }
                 });
             });
 
-            // Populate manual form
-            // Populate manual form
-            function populateManualForm(data, code) {
-                if (!data) return;
+            // Populate manual form with product data
+            async function populateManualFormWithProductData(barcode) {
+                if (!barcode) return;
 
-                // Clear any previous values first
-                const form = document.getElementById('manualProductForm');
-                if (form) form.reset();
+                // Set barcode first
+                if (barcodeInput) barcodeInput.value = barcode;
 
-                // Populate fields with scanned data
-                document.getElementById('productName').value = data.name || '';
-                document.getElementById('productBrand').value = data.brand || '';
-                document.getElementById('productCategory').value = data.category || '';
+                // Fetch product info
+                const productData = await fetchProductInfo(barcode);
 
-                // Ensure barcode is populated - this is the key fix
-                if (barcodeInput && code) {
-                    barcodeInput.value = code;
+                if (productData) {
+                    // Populate form fields
+                    document.getElementById('productName').value = productData.name || '';
+                    document.getElementById('productBrand').value = productData.brand || '';
+
+                    // Map category properly
+                    const mappedCategory = mapCategory(productData.category);
+                    document.getElementById('productCategory').value = mappedCategory;
+
+                    document.getElementById('productDescription').value = productData.description || '';
+                    document.getElementById('productWeight').value = productData.weight != null ? productData.weight : '';
+                    document.getElementById('productDimensions').value = productData.dimensions || '';
+                    document.getElementById('productIngredients').value = productData.ingredients || '';
+                    document.getElementById('supplierInfo').value = productData.stores || '';
+
+                    // Set default pricing based on category
+                    setDefaultPricing(mappedCategory);
+
+                    console.log('Fetched product data:', productData);
+                } else {
+                    // If no API data, set minimal defaults
+                    setDefaultPricing('other');
+                    document.getElementById('stockQuantity').value = Math.floor(Math.random() * 50) + 10;
+                }
+            }
+
+            // Map Open Food Facts categories to your category options
+            function mapCategory(apiCategory) {
+                if (!apiCategory) return 'other';
+
+                const categoryMap = {
+                    // Food categories
+                    'beverages': 'food',
+                    'dairies': 'food',
+                    'snacks': 'food',
+                    'fruits': 'food',
+                    'vegetables': 'food',
+                    'meats': 'food',
+                    'breads': 'food',
+                    'cereals': 'food',
+                    'spreads': 'food',
+                    'condiments': 'food',
+                    'drinks': 'food',
+                    'sweets': 'food',
+
+                    // Electronics
+                    'electronics': 'electronics',
+                    'computers': 'electronics',
+                    'phones': 'electronics',
+                    'appliances': 'electronics',
+
+                    // Home & Garden
+                    'cleaning-products': 'home',
+                    'gardening': 'home',
+                    'home-appliances': 'home',
+                    'kitchen': 'home',
+
+                    // Health & Beauty
+                    'cosmetics': 'beauty',
+                    'personal-care': 'beauty',
+                    'health': 'beauty',
+                    'beauty': 'beauty',
+
+                    // Sports
+                    'sports': 'sports',
+                    'fitness': 'sports',
+                    'outdoors': 'sports',
+
+                    // Books
+                    'books': 'books',
+                    'magazines': 'books',
+                    'media': 'books',
+
+                    // Clothing
+                    'clothing': 'clothing',
+                    'apparel': 'clothing',
+                    'shoes': 'clothing'
+                };
+
+                const lowerCategory = apiCategory.toLowerCase();
+
+                // Check for direct matches
+                for (const [key, value] of Object.entries(categoryMap)) {
+                    if (lowerCategory.includes(key)) {
+                        return value;
+                    }
                 }
 
-                document.getElementById('productDescription').value = data.description || '';
-                document.getElementById('costPrice').value = data.costPrice != null ? data.costPrice : '';
-                document.getElementById('sellingPrice').value = data.sellingPrice != null ? data.sellingPrice : '';
-                document.getElementById('stockQuantity').value = Math.floor(Math.random() * 80) + 1;
-                document.getElementById('productWeight').value = data.weight != null ? data.weight : '';
-                document.getElementById('productDimensions').value = data.dimensions || '';
-                document.getElementById('productIngredients').value = data.ingredients || '';
+                // Check for keyword matches
+                if (lowerCategory.includes('food') || lowerCategory.includes('beverage') || lowerCategory.includes('grocery') || lowerCategory.includes('snack')) {
+                    return 'food';
+                } else if (lowerCategory.includes('electronic') || lowerCategory.includes('computer') || lowerCategory.includes('phone') || lowerCategory.includes('tech')) {
+                    return 'electronics';
+                } else if (lowerCategory.includes('home') || lowerCategory.includes('garden') || lowerCategory.includes('cleaning') || lowerCategory.includes('kitchen')) {
+                    return 'home';
+                } else if (lowerCategory.includes('beauty') || lowerCategory.includes('cosmetic') || lowerCategory.includes('personal') || lowerCategory.includes('health')) {
+                    return 'beauty';
+                } else if (lowerCategory.includes('sport') || lowerCategory.includes('fitness') || lowerCategory.includes('outdoor')) {
+                    return 'sports';
+                } else if (lowerCategory.includes('book') || lowerCategory.includes('magazine') || lowerCategory.includes('media')) {
+                    return 'books';
+                } else if (lowerCategory.includes('cloth') || lowerCategory.includes('apparel') || lowerCategory.includes('wear')) {
+                    return 'clothing';
+                }
+
+                return 'other';
+            }
+
+            // Set default pricing based on category
+            function setDefaultPricing(category) {
+                const priceMap = {
+                    'electronics': { cost: 45.00, selling: 89.99 },
+                    'food': { cost: 8.50, selling: 15.99 },
+                    'clothing': { cost: 15.00, selling: 29.99 },
+                    'home': { cost: 12.00, selling: 24.99 },
+                    'sports': { cost: 22.00, selling: 39.99 },
+                    'beauty': { cost: 6.50, selling: 12.99 },
+                    'books': { cost: 5.00, selling: 9.99 },
+                    'other': { cost: 10.00, selling: 19.99 }
+                };
+
+                const prices = priceMap[category] || priceMap.other;
+                document.getElementById('costPrice').value = prices.cost;
+                document.getElementById('sellingPrice').value = prices.selling;
+                document.getElementById('stockQuantity').value = Math.floor(Math.random() * 50) + 10;
             }
 
             function switchToManualMode() {
                 const manualCard = document.querySelector('.mode-card[data-mode="manual"]');
                 if (manualCard) manualCard.click();
-                else { showManual(true); setStatus('info', '<i class="fas fa-edit"></i><span>Enter product information manually below.</span>'); }
+                else {
+                    showManual(true);
+                    setStatus('info', '<i class="fas fa-edit"></i><span>Enter product information manually below.</span>');
+                }
             }
+
             function switchToScanMode() {
                 const scanCard = document.querySelector('.mode-card[data-mode="scan"]');
                 if (scanCard) scanCard.click();
-                else { showScanner(true); setStatus('info', '<i class="fas fa-info-circle"></i><span>Ready to scan.</span>'); }
+                else {
+                    showScanner(true);
+                    setStatus('info', '<i class="fas fa-info-circle"></i><span>Ready to scan.</span>');
+                }
             }
 
             // Listen for barcodeScanned event
-            // Listen for barcodeScanned event
-            window.addEventListener('barcodeScanned', (e) => {
+            window.addEventListener('barcodeScanned', async (e) => {
                 const code = (e && e.detail && (e.detail.code || e.detail)) || '';
-                console.log('Barcode scanned:', code); // Debug log
+                if (!code) return;
 
-                if (!code) {
-                    console.error('No barcode received');
-                    return;
-                }
+                console.log('Barcode scanned:', code);
 
-                const productData = productDatabase[code];
-                console.log('Product data found:', productData); // Debug log
+                // Populate form with product data
+                await populateManualFormWithProductData(code);
 
-                if (productData) {
-                    populateManualForm(productData, code);
-                    switchToManualMode();
-                    setStatus('success', '<i class="fas fa-check-circle"></i><span>Barcode scanned — product loaded. Review and save.</span>');
-                } else {
-                    // Even if product not in database, still populate the barcode
-                    if (barcodeInput) {
-                        barcodeInput.value = code;
-                    }
-                    switchToManualMode();
-                    setStatus('error', '<i class="fas fa-exclamation-triangle"></i><span>Barcode scanned — product not found in database. Please fill information manually.</span>');
-                }
+                // Switch to manual mode to show the populated form
+                switchToManualMode();
             });
 
-            // Quagga integration
             // Quagga integration
             let scannerRunning = false;
 
@@ -952,6 +1305,7 @@
                 if (!result || !result.codeResult || !result.codeResult.code) return;
                 const code = result.codeResult.code;
                 console.log('Barcode detected:', code);
+
                 const ev = new CustomEvent('barcodeScanned', { detail: { code } });
                 window.dispatchEvent(ev);
                 stopScanner();
@@ -959,14 +1313,20 @@
 
             function startScanner() {
                 if (scannerRunning) return;
-
                 if (!window.Quagga) {
                     // fallback simulate
                     console.warn('Quagga not present. Simulating scan...');
                     setStatus('info', '<i class="fas fa-info-circle"></i><span>Camera not available — simulating scan.</span>');
                     setTimeout(() => {
-                        const keys = Object.keys(productDatabase);
-                        const rand = keys[Math.floor(Math.random() * keys.length)];
+                        // Simulate scanning common barcodes that exist in Open Food Facts
+                        const mockBarcodes = [
+                            '3017620422003', // Ferrero Rocher
+                            '5449000000996', // Coca Cola
+                            '7613034626844', // Nestle Nescafe
+                            '5000159459222', // Walkers Crisps
+                            '8715700162633'  // Food product
+                        ];
+                        const rand = mockBarcodes[Math.floor(Math.random() * mockBarcodes.length)];
                         window.dispatchEvent(new CustomEvent('barcodeScanned', { detail: { code: rand } }));
                     }, 900);
                     return;
@@ -981,49 +1341,27 @@
                             constraints: {
                                 width: 640,
                                 height: 480,
-                                facingMode: 'environment',
-                                aspectRatio: { min: 1, max: 2 }
-                            },
-                            area: {
-                                top: '0%',    // Top offset
-                                right: '0%',  // Right offset
-                                left: '0%',   // Left offset
-                                bottom: '0%'  // Bottom offset
+                                facingMode: 'environment'
                             }
                         },
                         decoder: {
-                            readers: [
-                                'ean_reader',
-                                'ean_8_reader',
-                                'code_128_reader',
-                                'upc_reader',
-                                'upc_e_reader'
-                            ],
+                            readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'upc_reader', 'upc_e_reader'],
                             multiple: false
                         },
-                        locator: {
-                            patchSize: 'medium',
-                            halfSample: true
-                        },
-                        locate: true,
-                        frequency: 10
+                        locate: true
                     }, function (err) {
                         if (err) {
                             console.error('Quagga init error', err);
                             setStatus('error', '<i class="fas fa-exclamation-triangle"></i><span>Unable to start camera. Use manual entry.</span>');
                             return;
                         }
-
                         Quagga.start();
                         Quagga.onDetected(onDetected);
                         scannerRunning = true;
                         startBtn.style.display = 'none';
                         stopBtn.style.display = 'inline-block';
                         setScannerText('Scanning... point camera at barcode');
-                        setStatus('info', '<i class="fas fa-camera"></i><span>Scanning... point camera at barcode.</span>');
-
-                        // Add active class for styling
-                        scannerSection.classList.add('scanner-active');
+                        setStatus('info', '<i class="fas fa-camera"></i><span>Scanning... point camera at product barcode.</span>');
                     });
                 } catch (ex) {
                     console.error('Quagga start exception', ex);
@@ -1036,53 +1374,48 @@
                     startBtn.style.display = 'inline-block';
                     stopBtn.style.display = 'none';
                     setScannerText('Scanner stopped');
-                    scannerSection.classList.remove('scanner-active');
                     return;
                 }
-
                 try {
                     Quagga.offDetected(onDetected);
                     Quagga.stop();
                 } catch (e) {
-                    console.log('Quagga stop error:', e);
+                    console.log('Error stopping scanner:', e);
                 }
-
                 scannerRunning = false;
                 startBtn.style.display = 'inline-block';
                 stopBtn.style.display = 'none';
                 setScannerText('Scanner stopped');
                 setStatus('info', '<i class="fas fa-info-circle"></i><span>Scanner stopped</span>');
-                scannerSection.classList.remove('scanner-active');
 
                 // Remove any injected nodes inside previewBox (video/canvas)
-                const videos = previewBox.querySelectorAll('video');
-                const canvases = previewBox.querySelectorAll('canvas');
-
-                videos.forEach(video => video.remove());
-                canvases.forEach(canvas => canvas.remove());
-
-                // Show the placeholder again
-                const placeholder = document.createElement('div');
-                placeholder.className = 'camera-loading';
-                placeholder.style.textAlign = 'center';
-                placeholder.innerHTML = `
-        <i class="fas fa-camera" style="font-size:28px;opacity:.6;margin-bottom:8px"></i>
-        <div style="opacity:.75">Camera preview will appear here</div>
-    `;
-                previewBox.appendChild(placeholder);
+                const injected = previewBox.querySelector('video, canvas');
+                if (injected) injected.remove();
             }
 
             // Button wiring
-            if (startBtn) startBtn.addEventListener('click', () => { switchToScanMode(); startScanner(); });
-            if (stopBtn) stopBtn.addEventListener('click', stopScanner);
-            if (manualToggle) manualToggle.addEventListener('click', () => { stopScanner(); switchToManualMode(); });
-            if (switchToScanBtn) switchToScanBtn.addEventListener('click', () => { switchToScanMode(); });
+            if (startBtn) startBtn.addEventListener('click', () => {
+                switchToScanMode();
+                startScanner();
+            });
 
-            // Manual form submit
+            if (stopBtn) stopBtn.addEventListener('click', stopScanner);
+
+            if (manualToggle) manualToggle.addEventListener('click', () => {
+                stopScanner();
+                switchToManualMode();
+            });
+
+            if (switchToScanBtn) switchToScanBtn.addEventListener('click', () => {
+                switchToScanMode();
+            });
+
+            // Manual form submit - Save to database
             if (manualForm) {
-                manualForm.addEventListener('submit', (ev) => {
+                manualForm.addEventListener('submit', async (ev) => {
                     ev.preventDefault();
-                    const data = {
+
+                    const productData = {
                         name: document.getElementById('productName').value.trim(),
                         brand: document.getElementById('productBrand').value.trim(),
                         category: document.getElementById('productCategory').value,
@@ -1091,43 +1424,81 @@
                         costPrice: parseFloat(document.getElementById('costPrice').value),
                         sellingPrice: parseFloat(document.getElementById('sellingPrice').value),
                         stockQuantity: parseInt(document.getElementById('stockQuantity').value, 10),
-                        reorderLevel: parseInt(document.getElementById('reorderLevel').value || '0', 10)
+                        reorderLevel: parseInt(document.getElementById('reorderLevel').value || '0', 10),
+                        weight: document.getElementById('productWeight').value ? parseFloat(document.getElementById('productWeight').value) : null,
+                        dimensions: document.getElementById('productDimensions').value.trim(),
+                        ingredients: document.getElementById('productIngredients').value.trim(),
+                        supplierInfo: document.getElementById('supplierInfo').value.trim(),
+                        createdAt: new Date().toISOString()
                     };
 
-                    if (!data.name || !data.category || isNaN(data.costPrice) || isNaN(data.sellingPrice) || isNaN(data.stockQuantity)) {
+                    if (!productData.name || !productData.category || isNaN(productData.costPrice) || isNaN(productData.sellingPrice) || isNaN(productData.stockQuantity)) {
                         alert('Please fill required fields correctly.');
                         return;
                     }
-                    if (data.sellingPrice <= data.costPrice) {
+                    if (productData.sellingPrice <= productData.costPrice) {
                         alert('Selling price must be greater than cost price.');
                         return;
                     }
 
-                    // Simulate saving product (replace with API call)
-                    console.log('Saving product', data);
-                    setStatus('success', '<i class="fas fa-check-circle"></i><span>Product added successfully!</span>');
+                    // Save product to database
+                    try {
+                        await saveProductToDatabase(productData);
+                        setStatus('success', '<i class="fas fa-check-circle"></i><span>Product added successfully to database!</span>');
 
-                    setTimeout(() => {
-                        manualForm.reset();
-                        setStatus('info', '<i class="fas fa-info-circle"></i><span>Select a method above to add another product</span>');
-                        switchToScanMode();
-                    }, 900);
+                        setTimeout(() => {
+                            manualForm.reset();
+                            setStatus('info', '<i class="fas fa-info-circle"></i><span>Select a method above to add another product</span>');
+                            switchToScanMode();
+                        }, 1500);
+                    } catch (error) {
+                        setStatus('error', `<i class="fas fa-exclamation-triangle"></i><span>Error saving product: ${error.message}</span>`);
+                    }
                 });
             }
 
-            // Profit margin logging (optional)
-            const costInput = document.getElementById('costPrice'), sellInput = document.getElementById('sellingPrice');
-            function calcMargin() { const c = parseFloat(costInput?.value || 0), s = parseFloat(sellInput?.value || 0); if (c > 0 && s > c) { const margin = (((s - c) / s) * 100).toFixed(2); console.log('Profit Margin', margin + '%'); } }
-            if (costInput) costInput.addEventListener('input', calcMargin);
-            if (sellInput) sellInput.addEventListener('input', calcMargin);
+            // Save product to database (localStorage for demo)
+            async function saveProductToDatabase(productData) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        // Get existing products from localStorage
+                        const existingProducts = JSON.parse(localStorage.getItem('products') || '{}');
 
-            // Initial UI state — show scanner (because mode card default is scan)
+                        // Generate product ID
+                        const productId = 'prod_' + Date.now();
+
+                        // Add product to database
+                        existingProducts[productId] = {
+                            id: productId,
+                            ...productData
+                        };
+
+                        // Save back to localStorage
+                        localStorage.setItem('products', JSON.stringify(existingProducts));
+
+                        console.log('Product saved to database:', productData);
+                        resolve(productId);
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            // Initial UI state
             const activeCard = document.querySelector('.mode-card.active');
-            if (activeCard?.getAttribute('data-mode') === 'scan') { showScanner(true); setStatus('info', '<i class="fas fa-info-circle"></i><span>Ready to scan. Click Start Scanner.</span>'); }
-            else { showManual(true); setStatus('info', '<i class="fas fa-edit"></i><span>Enter product information manually below.</span>'); }
+            if (activeCard?.getAttribute('data-mode') === 'scan') {
+                showScanner(true);
+                setStatus('info', '<i class="fas fa-info-circle"></i><span>Ready to scan barcodes. Click Start Scanner.</span>');
+            }
+            else {
+                showManual(true);
+                setStatus('info', '<i class="fas fa-edit"></i><span>Enter product information manually below.</span>');
+            }
 
             // Cleanup on unload
-            window.addEventListener('beforeunload', () => { if (scannerRunning) stopScanner(); });
+            window.addEventListener('beforeunload', () => {
+                if (scannerRunning) stopScanner();
+            });
         });
     </script>
 </body>
