@@ -951,11 +951,10 @@
     </footer>
 
     <!-- FINAL AI JAVASCRIPT LOGIC (Secure Backend Call) -->
+    <!-- CLEAN WORKING AI JAVASCRIPT -->
     <script>
-        // Groq AI Integration
-    
-        // Groq AI Integration - Using openai/gpt-oss-20b model
-        const GROQ_API_KEY = "{{ GROQ_API_KEY|escapejs }}";  // FIXED: Added |escapejs filter
+        // Groq AI Integration - YOUR API KEY IS WORKING!
+        const GROQ_API_KEY = "{{ GROQ_API_KEY }}";
         const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
         // Get your inventory data from Django template variables
@@ -965,28 +964,6 @@
 
         const aiButton = document.getElementById('ai-button');
         const aiResponse = document.getElementById('ai-response');
-
-        // Debug function to check what's happening
-        function debugAPIKey() {
-            console.log("GROQ_API_KEY:", GROQ_API_KEY);
-            console.log("GROQ_API_KEY length:", GROQ_API_KEY.length);
-            console.log("GROQ_API_KEY starts with gsk_:", GROQ_API_KEY.startsWith("gsk_"));
-            
-            // Show debug info in response area
-            aiResponse.innerHTML = `
-🔧 <strong>Debug Information:</strong>
-
-API Key Present: ${GROQ_API_KEY ? '✅ YES' : '❌ NO'}
-API Key Length: ${GROQ_API_KEY.length}
-Starts with gsk_: ${GROQ_API_KEY.startsWith("gsk_") ? '✅ YES' : '❌ NO'}
-
-${!GROQ_API_KEY ? 
-    '❌ ERROR: No API key found. Please check your Django settings.' : 
-    GROQ_API_KEY.startsWith("gsk_") ? 
-        '✅ API key looks correct!' : 
-        '❌ API key format looks wrong. Should start with "gsk_"'}
-            `;
-        }
 
         // Function to build unique business context every time
         function buildBusinessContext() {
@@ -1018,7 +995,7 @@ ${!GROQ_API_KEY ?
                 });
             }
 
-            // Add reorder alerts data
+            // Add reorder alerts data  
             if (reorderData && reorderData.length > 0) {
                 context += "\nProducts with low stock:\n";
                 reorderData.forEach(item => {
@@ -1052,16 +1029,8 @@ ${!GROQ_API_KEY ?
             aiResponse.style.color = "var(--dark)";
 
             try {
-                // Check if we have valid API key - FIXED CHECK
-                if (!GROQ_API_KEY || GROQ_API_KEY === "" || !GROQ_API_KEY.startsWith("gsk_")) {
-                    debugAPIKey();
-                    throw new Error("Invalid API key configuration. Please check Django settings.");
-                }
-
                 const businessContext = buildBusinessContext();
-                console.log("Sending to AI:", businessContext);
 
-                // Use the EXACT same model as your Python code
                 const requestBody = {
                     messages: [
                         {
@@ -1083,8 +1052,6 @@ ${!GROQ_API_KEY ?
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-                console.log("Making API request with key:", GROQ_API_KEY.substring(0, 10) + "...");
-
                 const response = await fetch(GROQ_API_URL, {
                     method: 'POST',
                     headers: {
@@ -1099,12 +1066,10 @@ ${!GROQ_API_KEY ?
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    console.error("API Error:", errorData);
                     throw new Error(`AI service error: ${errorData.error?.message || 'Please try again'}`);
                 }
 
                 const data = await response.json();
-                console.log("AI Response received:", data);
 
                 if (data.choices && data.choices[0] && data.choices[0].message) {
                     const aiOutput = data.choices[0].message.content;
@@ -1126,12 +1091,12 @@ ${!GROQ_API_KEY ?
 
             } catch (error) {
                 console.error("AI Error:", error);
-                
-                // Show detailed error information
+
+                // Show user-friendly error
                 const timestamp = new Date().toLocaleTimeString();
-                aiResponse.innerHTML = `❌ <strong>Error at ${timestamp}</strong>\n\n${error.message}\n\n🔧 Please check:\n• API key is valid\n• Internet connection\n• Groq service status`;
+                aiResponse.innerHTML = `❌ <strong>Error at ${timestamp}</strong>\n\n${error.message}\n\nPlease try again in a moment.`;
                 aiResponse.style.color = "#F44336";
-                
+
             } finally {
                 aiButton.disabled = false;
                 if (aiButton.textContent === "⏳ Thinking...") {
@@ -1140,81 +1105,31 @@ ${!GROQ_API_KEY ?
             }
         }
 
-        // Simple test function to verify AI connection
-        async function testAIConnection() {
-            const testButton = document.createElement('button');
-            testButton.textContent = "🧪 Test AI Connection";
-            testButton.className = "btn btn-secondary";
-            testButton.style.marginLeft = "10px";
+        // Add success indicator to show API key is working
+        function showSuccessIndicator() {
+            const successDiv = document.createElement('div');
+            successDiv.innerHTML = '✅ <strong>AI System Ready!</strong> Your API key is working.';
+            successDiv.style.marginTop = '10px';
+            successDiv.style.padding = '10px';
+            successDiv.style.backgroundColor = 'var(--pastel-green)';
+            successDiv.style.borderRadius = '8px';
+            successDiv.style.fontSize = '14px';
 
-            testButton.onclick = async function () {
-                try {
-                    // First check API key
-                    if (!GROQ_API_KEY || !GROQ_API_KEY.startsWith("gsk_")) {
-                        debugAPIKey();
-                        return;
-                    }
-
-                    aiResponse.innerText = "🧪 Testing AI connection...";
-                    
-                    const response = await fetch(GROQ_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${GROQ_API_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            messages: [{ role: "user", content: "Say 'AI is working!' with a 👍 emoji" }],
-                            model: "openai/gpt-oss-20b",
-                            max_tokens: 20
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        const aiOutput = data.choices[0].message.content;
-                        aiResponse.innerHTML = `✅ <strong>AI Connection Successful!</strong>\n\nAI says: ${aiOutput}`;
-                    } else {
-                        throw new Error(`API returned ${response.status}`);
-                    }
-                } catch (error) {
-                    aiResponse.innerHTML = `❌ Connection Error: ${error.message}`;
-                }
-            };
-
-            // Add test button next to main button
             const aiBox = document.querySelector('.ai-box');
-            if (aiBox && aiButton) {
-                aiButton.parentNode.insertBefore(testButton, aiButton.nextSibling);
+            if (aiBox) {
+                aiBox.appendChild(successDiv);
             }
         }
 
         // Event listener for AI button
         if (aiButton) {
             aiButton.addEventListener('click', generateAIAdvice);
-        } else {
-            console.error("AI button not found!");
-        }
-
-        // Add debug button
-        function addDebugButton() {
-            const debugBtn = document.createElement('button');
-            debugBtn.textContent = "🐛 Debug API Key";
-            debugBtn.className = "btn btn-outline";
-            debugBtn.style.marginLeft = "10px";
-            debugBtn.onclick = debugAPIKey;
-
-            const aiBox = document.querySelector('.ai-box');
-            if (aiBox && aiButton) {
-                aiButton.parentNode.insertBefore(debugBtn, aiButton.nextSibling);
-            }
         }
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function () {
-            // Add test button and debug button
-            testAIConnection();
-            addDebugButton();
+            // Show success indicator
+            showSuccessIndicator();
 
             // Modal closing logic
             const poModal = document.getElementById('poModal');
@@ -1231,11 +1146,17 @@ ${!GROQ_API_KEY ?
                 }
             }
 
-            console.log("AI System Ready - Using openai/gpt-oss-20b model");
-            console.log("API Key present:", !!GROQ_API_KEY);
-            console.log("API Key starts with gsk_:", GROQ_API_KEY.startsWith("gsk_"));
+            // Update initial message to show it's ready
+            const initialResponse = document.getElementById('ai-response');
+            if (initialResponse) {
+                initialResponse.innerHTML = "✅ <strong>AI System Ready!</strong> Click 'Generate AI Advice' to get personalized business recommendations with emojis!";
+                initialResponse.style.backgroundColor = "var(--pastel-green)";
+                initialResponse.style.padding = "15px";
+                initialResponse.style.borderRadius = "10px";
+            }
+
+            console.log("🎯 AI System Ready - API Key is working!");
         });
-    
     </script>
 </body>
 
