@@ -1,6 +1,9 @@
 """
 Django settings for profitify project.
 """
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
 from pathlib import Path
 
@@ -13,6 +16,9 @@ DEBUG = True
 # Allow localhost, 127.0.0.1, and ANY frontend tool you use.
 ALLOWED_HOSTS = ["*",]
 
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # -------------------------------------------------------
 # APPLICATIONS
@@ -150,3 +156,5 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:5173",
 ]
+
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
