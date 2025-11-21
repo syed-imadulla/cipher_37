@@ -953,7 +953,9 @@
     <!-- FINAL AI JAVASCRIPT LOGIC (Secure Backend Call) -->
     <script>
         // Groq AI Integration
-        const GROQ_API_KEY = "{{ GROQ_API_KEY }}";
+    
+        // Groq AI Integration - Using openai/gpt-oss-20b model
+        const GROQ_API_KEY = "{{ GROQ_API_KEY|escapejs }}";  // FIXED: Added |escapejs filter
         const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
         // Get your inventory data from Django template variables
@@ -964,157 +966,107 @@
         const aiButton = document.getElementById('ai-button');
         const aiResponse = document.getElementById('ai-response');
 
-        // Function to build the business context prompt with better formatting instructions
-        function buildBusinessContext() {
-            let context = "You are an expert business advisor for a retail store. Analyze the inventory data and provide specific, actionable recommendations.\n\n";
-            context += "IMPORTANT: Format your response in clean, readable paragraphs and bullet points. DO NOT use markdown tables or complex formatting.\n\n";
+        // Debug function to check what's happening
+        function debugAPIKey() {
+            console.log("GROQ_API_KEY:", GROQ_API_KEY);
+            console.log("GROQ_API_KEY length:", GROQ_API_KEY.length);
+            console.log("GROQ_API_KEY starts with gsk_:", GROQ_API_KEY.startsWith("gsk_"));
+            
+            // Show debug info in response area
+            aiResponse.innerHTML = `
+🔧 <strong>Debug Information:</strong>
 
-            context += "INVENTORY DATA SUMMARY:\n";
+API Key Present: ${GROQ_API_KEY ? '✅ YES' : '❌ NO'}
+API Key Length: ${GROQ_API_KEY.length}
+Starts with gsk_: ${GROQ_API_KEY.startsWith("gsk_") ? '✅ YES' : '❌ NO'}
+
+${!GROQ_API_KEY ? 
+    '❌ ERROR: No API key found. Please check your Django settings.' : 
+    GROQ_API_KEY.startsWith("gsk_") ? 
+        '✅ API key looks correct!' : 
+        '❌ API key format looks wrong. Should start with "gsk_"'}
+            `;
+        }
+
+        // Function to build unique business context every time
+        function buildBusinessContext() {
+            const randomGreetings = [
+                "Give me fresh shop advice for today",
+                "What should I focus on in my shop this week?",
+                "Give me new ideas to improve my shop",
+                "What are today's best recommendations?",
+                "Help me make my shop more profitable"
+            ];
+
+            const randomGreeting = randomGreetings[Math.floor(Math.random() * randomGreetings.length)];
+
+            let context = `${randomGreeting}. Use VERY SIMPLE English with emojis.\n\n`;
+            context += "RULES:\n";
+            context += "- Use ✅ for good things\n";
+            context += "- Use ❌ for problems\n";
+            context += "- Use ⚠️ for warnings\n";
+            context += "- Use simple words only\n";
+            context += "- Give NEW ideas each time\n\n";
+
+            context += "MY SHOP DATA:\n";
 
             // Add waste alerts data
-            context += "EXPIRING PRODUCTS:\n";
             if (wasteData && wasteData.length > 0) {
+                context += "Products expiring soon:\n";
                 wasteData.forEach(item => {
-                    context += `- ${item.product?.product_name || 'Unknown Product'} expires on ${item.expiry_date}\n`;
+                    context += `- ${item.product || 'Product'} (expires: ${item.expiry_date})\n`;
                 });
-            } else {
-                context += "- No products expiring soon\n";
             }
 
             // Add reorder alerts data
-            context += "\nLOW STOCK PRODUCTS:\n";
             if (reorderData && reorderData.length > 0) {
+                context += "\nProducts with low stock:\n";
                 reorderData.forEach(item => {
-                    context += `- ${item.name}: Current stock ${item.current_stock} (Reorder at ${item.reorder_level})\n`;
+                    context += `- ${item.name} (only ${item.current_stock} left)\n`;
                 });
-            } else {
-                context += "- All products adequately stocked\n";
             }
 
             // Add trend data if available
-            context += "\nSALES TRENDS:\n";
             if (trendData && trendData.length > 0) {
+                context += "\nProducts selling fast:\n";
                 trendData.forEach(item => {
-                    context += `- ${item.product_name}: ${item.message}\n`;
+                    context += `- ${item.product_name}\n`;
                 });
-            } else {
-                context += "- No significant trend data available\n";
             }
 
-            context += "\nRESPONSE FORMAT REQUIREMENTS:\n";
-            context += "1. Start with a brief 2-3 sentence executive summary\n";
-            context += "2. Use clear headings like 'Key Findings', 'Recommended Actions', 'Priority Items'\n";
-            context += "3. Use bullet points for recommendations, not tables\n";
-            context += "4. Keep it concise and actionable (max 400 words)\n";
-            context += "5. Focus on specific products mentioned in the data\n";
-            context += "6. Use simple, business-friendly language\n\n";
-
-            context += "Please provide your analysis:";
+            context += "\nPlease give me unique advice with emojis. Make it different from last time!";
 
             return context;
         }
 
-        // Function to clean and format the AI response
-        function formatAIResponse(text) {
-            // Remove markdown table syntax and clean up formatting
-            let cleaned = text
-                .replace(/\|/g, '') // Remove table pipes
-                .replace(/-{3,}/g, '') // Remove table separators
-                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown but keep text
-                .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown but keep text
-                .replace(/`(.*?)`/g, '$1') // Remove code markdown
-                .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
-                .trim();
-
-            // Ensure proper paragraph spacing
-            cleaned = cleaned.replace(/\n/g, '\n\n');
-
-            return cleaned;
-        }
-
         // Main function to call Groq API
-        async function generateGroqAdvice() {
+        async function generateAIAdvice() {
             if (!aiButton || !aiResponse) {
                 console.error("AI button or response element not found");
                 return;
             }
 
             aiButton.disabled = true;
-            aiResponse.innerText = "Analyzing your inventory data with AI... Please wait.";
+            aiButton.textContent = "⏳ Thinking...";
+            aiResponse.innerText = "🤔 Asking AI for fresh advice...";
+            aiResponse.style.color = "var(--dark)";
 
             try {
-                const businessContext = buildBusinessContext();
-                console.log("Sending context to AI:", businessContext);
+                // Check if we have valid API key - FIXED CHECK
+                if (!GROQ_API_KEY || GROQ_API_KEY === "" || !GROQ_API_KEY.startsWith("gsk_")) {
+                    debugAPIKey();
+                    throw new Error("Invalid API key configuration. Please check Django settings.");
+                }
 
+                const businessContext = buildBusinessContext();
+                console.log("Sending to AI:", businessContext);
+
+                // Use the EXACT same model as your Python code
                 const requestBody = {
                     messages: [
                         {
                             role: "system",
-                            content: "You are a helpful business advisor. Provide responses in clean, readable text with clear headings and bullet points. Avoid markdown tables and complex formatting. Use simple business language."
-                        },
-                        {
-                            role: "user",
-                            content: businessContext
-                        }
-                    ],
-                    model: "llama3-8b-8192", // Using a more reliable model
-                    temperature: 0.7,
-                    max_tokens: 1024,
-                    top_p: 1,
-                    stream: false
-                };
-
-                const response = await fetch(GROQ_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${GROQ_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-                }
-
-                const data = await response.json();
-
-                if (data.choices && data.choices[0] && data.choices[0].message) {
-                    const rawResponse = data.choices[0].message.content;
-                    const formattedResponse = formatAIResponse(rawResponse);
-                    aiResponse.innerText = formattedResponse;
-                    aiResponse.style.color = "var(--dark)";
-                    aiResponse.style.whiteSpace = "pre-wrap"; // Preserve line breaks
-                    aiResponse.style.lineHeight = "1.5"; // Better readability
-                } else {
-                    throw new Error("Unexpected response format from AI");
-                }
-
-            } catch (error) {
-                console.error("Groq AI Error:", error);
-                aiResponse.innerText = `Error: ${error.message}. Please try again.`;
-                aiResponse.style.color = "#F44336";
-            } finally {
-                aiButton.disabled = false;
-            }
-        }
-
-        // Alternative version with your exact model if needed
-        async function generateGroqAdviceWithExactModel() {
-            if (!aiButton || !aiResponse) return;
-
-            aiButton.disabled = true;
-            aiResponse.innerText = "Analyzing your inventory data with AI... Please wait.";
-
-            try {
-                const businessContext = buildBusinessContext();
-
-                const requestBody = {
-                    messages: [
-                        {
-                            role: "system",
-                            content: "IMPORTANT: Respond in plain text only. Use clear headings and bullet points. No markdown tables, no complex formatting. Keep it simple and actionable."
+                            content: "You are a helpful business advisor for small shop owners in India. Use very simple English with lots of emojis. Keep responses under 200 words. Give practical, actionable advice. Make each response unique and fresh."
                         },
                         {
                             role: "user",
@@ -1122,11 +1074,16 @@
                         }
                     ],
                     model: "openai/gpt-oss-20b",
-                    temperature: 0.7, // Lower temperature for more consistent formatting
-                    max_tokens: 800, // Shorter response
+                    temperature: 1,
+                    max_tokens: 512,
                     top_p: 1,
                     stream: false
                 };
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+                console.log("Making API request with key:", GROQ_API_KEY.substring(0, 10) + "...");
 
                 const response = await fetch(GROQ_API_URL, {
                     method: 'POST',
@@ -1134,45 +1091,132 @@
                         'Authorization': `Bearer ${GROQ_API_KEY}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+                    console.error("API Error:", errorData);
+                    throw new Error(`AI service error: ${errorData.error?.message || 'Please try again'}`);
                 }
 
                 const data = await response.json();
+                console.log("AI Response received:", data);
 
                 if (data.choices && data.choices[0] && data.choices[0].message) {
-                    const rawResponse = data.choices[0].message.content;
-                    const formattedResponse = formatAIResponse(rawResponse);
-                    aiResponse.innerText = formattedResponse;
+                    const aiOutput = data.choices[0].message.content;
+
+                    // Add timestamp to show it's fresh
+                    const timestamp = new Date().toLocaleTimeString();
+                    aiResponse.innerHTML = `🕒 <strong>Updated at ${timestamp}</strong>\n\n${aiOutput}`;
+
                     aiResponse.style.color = "var(--dark)";
                     aiResponse.style.whiteSpace = "pre-wrap";
-                    aiResponse.style.lineHeight = "1.5";
+                    aiResponse.style.lineHeight = "1.6";
+                    aiResponse.style.fontSize = "16px";
+
+                    aiButton.textContent = "🔄 Get New Advice";
+
                 } else {
-                    throw new Error("Unexpected response format from AI");
+                    throw new Error("No response from AI");
                 }
 
             } catch (error) {
-                console.error("Groq AI Error:", error);
-                aiResponse.innerText = `Error: ${error.message}`;
+                console.error("AI Error:", error);
+                
+                // Show detailed error information
+                const timestamp = new Date().toLocaleTimeString();
+                aiResponse.innerHTML = `❌ <strong>Error at ${timestamp}</strong>\n\n${error.message}\n\n🔧 Please check:\n• API key is valid\n• Internet connection\n• Groq service status`;
                 aiResponse.style.color = "#F44336";
+                
             } finally {
                 aiButton.disabled = false;
+                if (aiButton.textContent === "⏳ Thinking...") {
+                    aiButton.textContent = "🔄 Try Again";
+                }
+            }
+        }
+
+        // Simple test function to verify AI connection
+        async function testAIConnection() {
+            const testButton = document.createElement('button');
+            testButton.textContent = "🧪 Test AI Connection";
+            testButton.className = "btn btn-secondary";
+            testButton.style.marginLeft = "10px";
+
+            testButton.onclick = async function () {
+                try {
+                    // First check API key
+                    if (!GROQ_API_KEY || !GROQ_API_KEY.startsWith("gsk_")) {
+                        debugAPIKey();
+                        return;
+                    }
+
+                    aiResponse.innerText = "🧪 Testing AI connection...";
+                    
+                    const response = await fetch(GROQ_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${GROQ_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            messages: [{ role: "user", content: "Say 'AI is working!' with a 👍 emoji" }],
+                            model: "openai/gpt-oss-20b",
+                            max_tokens: 20
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const aiOutput = data.choices[0].message.content;
+                        aiResponse.innerHTML = `✅ <strong>AI Connection Successful!</strong>\n\nAI says: ${aiOutput}`;
+                    } else {
+                        throw new Error(`API returned ${response.status}`);
+                    }
+                } catch (error) {
+                    aiResponse.innerHTML = `❌ Connection Error: ${error.message}`;
+                }
+            };
+
+            // Add test button next to main button
+            const aiBox = document.querySelector('.ai-box');
+            if (aiBox && aiButton) {
+                aiButton.parentNode.insertBefore(testButton, aiButton.nextSibling);
             }
         }
 
         // Event listener for AI button
         if (aiButton) {
-            aiButton.addEventListener('click', generateGroqAdviceWithExactModel);
+            aiButton.addEventListener('click', generateAIAdvice);
         } else {
             console.error("AI button not found!");
         }
 
-        // Modal closing logic
+        // Add debug button
+        function addDebugButton() {
+            const debugBtn = document.createElement('button');
+            debugBtn.textContent = "🐛 Debug API Key";
+            debugBtn.className = "btn btn-outline";
+            debugBtn.style.marginLeft = "10px";
+            debugBtn.onclick = debugAPIKey;
+
+            const aiBox = document.querySelector('.ai-box');
+            if (aiBox && aiButton) {
+                aiButton.parentNode.insertBefore(debugBtn, aiButton.nextSibling);
+            }
+        }
+
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function () {
+            // Add test button and debug button
+            testAIConnection();
+            addDebugButton();
+
+            // Modal closing logic
             const poModal = document.getElementById('poModal');
             if (poModal) {
                 const poCloseButtons = poModal.querySelectorAll('.close-modal');
@@ -1187,9 +1231,11 @@
                 }
             }
 
-            console.log("AI Button found:", !!aiButton);
-            console.log("AI Response found:", !!aiResponse);
+            console.log("AI System Ready - Using openai/gpt-oss-20b model");
+            console.log("API Key present:", !!GROQ_API_KEY);
+            console.log("API Key starts with gsk_:", GROQ_API_KEY.startsWith("gsk_"));
         });
+    
     </script>
 </body>
 
