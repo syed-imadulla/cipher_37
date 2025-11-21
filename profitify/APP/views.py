@@ -9,6 +9,7 @@ from django.db.models import Sum, F
 import json
 import urllib.request
 import urllib.parse
+from django.conf import settings
 
 from .models import (
     Product,
@@ -119,6 +120,8 @@ def ai_advisor(request):
         # FINAL AI DATA FOR JAVASCRIPT
         'waste_alerts_json': json.dumps(waste_list),
         'reorder_suggestions_json': json.dumps(reorder_list),
+        'trend_alerts_json': json.dumps(trend_alerts),
+        'GROQ_API_KEY': settings.GROQ_API_KEY,
     }
     
     return render(request, 'APP/ai_advisor.html', context)

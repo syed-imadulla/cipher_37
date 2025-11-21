@@ -776,6 +776,7 @@
         </div>
 
         <!-- AI Summary Block (SECURE BACKEND CALL) -->
+        <!-- AI Summary Block (GROQ AI INTEGRATION) -->
         <div class="ai-box"
             style="margin: 20px 0; padding: 25px; border: 1px solid #ddd; border-radius: 15px; background: rgba(255, 255, 255, 0.95); box-shadow: 0 5px 15px rgba(139, 95, 191, 0.1);">
             <h3 style="color: var(--dark); margin-bottom: 10px;">AI-Powered Business Summary</h3>
@@ -951,103 +952,223 @@
 
     <!-- FINAL AI JAVASCRIPT LOGIC (Secure Backend Call) -->
     <script>
-        // 1. Get the data from our Django template
-        const waste_data = JSON.parse('{{ waste_alerts_json|escapejs }}');
-        const reorder_data = JSON.parse('{{ reorder_suggestions_json|escapejs }}');
+        // Groq AI Integration
+        const GROQ_API_KEY = "{{ GROQ_API_KEY }}";
+        const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+        // Get your inventory data from Django template variables
+        const reorderData = REORDER_JSON;
+        const wasteData = WASTE_JSON;
+        const trendData = TREND_JSON;
 
         const aiButton = document.getElementById('ai-button');
         const aiResponse = document.getElementById('ai-response');
 
-        // URL for the secure Python view
-        const summaryApiUrl = "{% url 'generate-ai-summary' %}";
+        // Function to build the business context prompt with better formatting instructions
+        function buildBusinessContext() {
+            let context = "You are an expert business advisor for a retail store. Analyze the inventory data and provide specific, actionable recommendations.\n\n";
+            context += "IMPORTANT: Format your response in clean, readable paragraphs and bullet points. DO NOT use markdown tables or complex formatting.\n\n";
 
-        // CRITICAL FIX: Function to get the CSRF token from the cookie (most reliable method)
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    // Does this cookie string begin with the name we want?
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-        const csrfToken = getCookie('csrftoken'); // Get the token from the cookie
+            context += "INVENTORY DATA SUMMARY:\n";
 
-        if (aiButton) {
-            aiButton.addEventListener('click', generateSummary);
-        }
-
-        // 4. This function builds the prompt for the AI
-        function buildPrompt() {
-            let prompt = "Act as a local business consultant. Analyze the following raw inventory data and provide a short, professional, and actionable summary. Suggest specific actions (like running promotions on expiring goods or immediate reordering).\n\n";
-
-            prompt += "--- Expiring Soon ---\n";
-            if (waste_data.length > 0) {
-                waste_data.forEach(item => {
-                    prompt += `- Product: ${item.product} (Stock: ${item.stock}) expires on ${item.expiry_date}\n`;
+            // Add waste alerts data
+            context += "EXPIRING PRODUCTS:\n";
+            if (wasteData && wasteData.length > 0) {
+                wasteData.forEach(item => {
+                    context += `- ${item.product?.product_name || 'Unknown Product'} expires on ${item.expiry_date}\n`;
                 });
             } else {
-                prompt += "No products are expiring soon.\n";
+                context += "- No products expiring soon\n";
             }
 
-            prompt += "\n--- Low Stock Alerts ---\n";
-            if (reorder_data.length > 0) {
-                reorder_data.forEach(item => {
-                    prompt += `- Product: ${item.name} (Stock: ${item.current_stock}, Reorder at: ${item.reorder_level})\n`;
+            // Add reorder alerts data
+            context += "\nLOW STOCK PRODUCTS:\n";
+            if (reorderData && reorderData.length > 0) {
+                reorderData.forEach(item => {
+                    context += `- ${item.name}: Current stock ${item.current_stock} (Reorder at ${item.reorder_level})\n`;
                 });
             } else {
-                prompt += "All critical products are well-stocked.\n";
+                context += "- All products adequately stocked\n";
             }
 
-            return prompt;
+            // Add trend data if available
+            context += "\nSALES TRENDS:\n";
+            if (trendData && trendData.length > 0) {
+                trendData.forEach(item => {
+                    context += `- ${item.product_name}: ${item.message}\n`;
+                });
+            } else {
+                context += "- No significant trend data available\n";
+            }
+
+            context += "\nRESPONSE FORMAT REQUIREMENTS:\n";
+            context += "1. Start with a brief 2-3 sentence executive summary\n";
+            context += "2. Use clear headings like 'Key Findings', 'Recommended Actions', 'Priority Items'\n";
+            context += "3. Use bullet points for recommendations, not tables\n";
+            context += "4. Keep it concise and actionable (max 400 words)\n";
+            context += "5. Focus on specific products mentioned in the data\n";
+            context += "6. Use simple, business-friendly language\n\n";
+
+            context += "Please provide your analysis:";
+
+            return context;
         }
 
-        // 5. This async function calls the secure Python view
-        async function generateSummary() {
+        // Function to clean and format the AI response
+        function formatAIResponse(text) {
+            // Remove markdown table syntax and clean up formatting
+            let cleaned = text
+                .replace(/\|/g, '') // Remove table pipes
+                .replace(/-{3,}/g, '') // Remove table separators
+                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown but keep text
+                .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown but keep text
+                .replace(/`(.*?)`/g, '$1') // Remove code markdown
+                .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
+                .trim();
+
+            // Ensure proper paragraph spacing
+            cleaned = cleaned.replace(/\n/g, '\n\n');
+
+            return cleaned;
+        }
+
+        // Main function to call Groq API
+        async function generateGroqAdvice() {
+            if (!aiButton || !aiResponse) {
+                console.error("AI button or response element not found");
+                return;
+            }
+
             aiButton.disabled = true;
-            aiResponse.innerText = "Sending data to Python backend for analysis (Final attempt to fix 403)...";
-
-            const payload = {
-                waste_data: waste_data,
-                reorder_data: reorder_data,
-            };
+            aiResponse.innerText = "Analyzing your inventory data with AI... Please wait.";
 
             try {
-                // CRITICAL: We send the reliable cookie token via header
-                const response = await fetch(summaryApiUrl, {
+                const businessContext = buildBusinessContext();
+                console.log("Sending context to AI:", businessContext);
+
+                const requestBody = {
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a helpful business advisor. Provide responses in clean, readable text with clear headings and bullet points. Avoid markdown tables and complex formatting. Use simple business language."
+                        },
+                        {
+                            role: "user",
+                            content: businessContext
+                        }
+                    ],
+                    model: "llama3-8b-8192", // Using a more reliable model
+                    temperature: 0.7,
+                    max_tokens: 1024,
+                    top_p: 1,
+                    stream: false
+                };
+
+                const response = await fetch(GROQ_API_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken // Sending the reliable cookie token
+                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Backend Error ${response.status}. Response: ${errorText.substring(0, 100)}`);
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
                 }
 
-                const result = await response.json();
+                const data = await response.json();
 
-                if (result.status === 'success') {
-                    aiResponse.innerText = result.summary;
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    const rawResponse = data.choices[0].message.content;
+                    const formattedResponse = formatAIResponse(rawResponse);
+                    aiResponse.innerText = formattedResponse;
+                    aiResponse.style.color = "var(--dark)";
+                    aiResponse.style.whiteSpace = "pre-wrap"; // Preserve line breaks
+                    aiResponse.style.lineHeight = "1.5"; // Better readability
                 } else {
-                    aiResponse.innerText = `Error from Backend: ${result.message}`;
+                    throw new Error("Unexpected response format from AI");
                 }
 
             } catch (error) {
-                console.error("Summary Generation Failed:", error);
-                aiResponse.innerText = `An error occurred: ${error.message}. Check console for details.`;
+                console.error("Groq AI Error:", error);
+                aiResponse.innerText = `Error: ${error.message}. Please try again.`;
+                aiResponse.style.color = "#F44336";
             } finally {
                 aiButton.disabled = false;
             }
+        }
+
+        // Alternative version with your exact model if needed
+        async function generateGroqAdviceWithExactModel() {
+            if (!aiButton || !aiResponse) return;
+
+            aiButton.disabled = true;
+            aiResponse.innerText = "Analyzing your inventory data with AI... Please wait.";
+
+            try {
+                const businessContext = buildBusinessContext();
+
+                const requestBody = {
+                    messages: [
+                        {
+                            role: "system",
+                            content: "IMPORTANT: Respond in plain text only. Use clear headings and bullet points. No markdown tables, no complex formatting. Keep it simple and actionable."
+                        },
+                        {
+                            role: "user",
+                            content: businessContext
+                        }
+                    ],
+                    model: "openai/gpt-oss-20b",
+                    temperature: 0.7, // Lower temperature for more consistent formatting
+                    max_tokens: 800, // Shorter response
+                    top_p: 1,
+                    stream: false
+                };
+
+                const response = await fetch(GROQ_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+                }
+
+                const data = await response.json();
+
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    const rawResponse = data.choices[0].message.content;
+                    const formattedResponse = formatAIResponse(rawResponse);
+                    aiResponse.innerText = formattedResponse;
+                    aiResponse.style.color = "var(--dark)";
+                    aiResponse.style.whiteSpace = "pre-wrap";
+                    aiResponse.style.lineHeight = "1.5";
+                } else {
+                    throw new Error("Unexpected response format from AI");
+                }
+
+            } catch (error) {
+                console.error("Groq AI Error:", error);
+                aiResponse.innerText = `Error: ${error.message}`;
+                aiResponse.style.color = "#F44336";
+            } finally {
+                aiButton.disabled = false;
+            }
+        }
+
+        // Event listener for AI button
+        if (aiButton) {
+            aiButton.addEventListener('click', generateGroqAdviceWithExactModel);
+        } else {
+            console.error("AI button not found!");
         }
 
         // Modal closing logic
@@ -1065,82 +1186,10 @@
                     poCancelButton.addEventListener('click', () => poModal.classList.remove('active'));
                 }
             }
+
+            console.log("AI Button found:", !!aiButton);
+            console.log("AI Response found:", !!aiResponse);
         });
-    </script>
-    <!-- ... (Rest of your HTML content, including the button and alert cards) ... -->
-
-    <script>
-        // --- Paste the entire script block here ---
-
-        // Data references the variables defined in Step 1
-        const reorderData = REORDER_JSON;
-        const wasteData = WASTE_JSON;
-        const trendData = TREND_JSON;
-
-        const adviceButton = document.getElementById('generate-advice-btn');
-        const outputContainer = document.getElementById('ai-summary-output');
-
-        if (adviceButton) {
-            adviceButton.addEventListener('click', generateAdvice);
-        }
-
-        async function generateAdvice() {
-            outputContainer.innerHTML = 'Analyzing inventory... please wait.';
-
-            // Bundle all three datasets for the Python backend
-            const payload = {
-                reorder_data: reorderData,
-                waste_data: wasteData,
-                trend_data: trendData // SENDING THE TREND DATA
-            };
-
-            try {
-                const response = await fetch('/api/generate-ai-summary/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // CSRF token is necessary for Django POST requests
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Backend Error ${response.status}: ${errorData.message}`);
-                }
-
-                const data = await response.json();
-
-                if (data.status === 'success') {
-                    // Display the dynamic summary generated by the Python view
-                    outputContainer.innerHTML = `<div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">${data.summary}</div>`;
-                } else {
-                    outputContainer.innerHTML = `<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">An error occurred: ${data.message}</div>`;
-                }
-
-            } catch (error) {
-                console.error('API Call Failed:', error);
-                outputContainer.innerHTML = `<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">An error occurred: ${error.message}</div>`;
-            }
-        }
-
-        // Helper function to get CSRF token (required for Django POST requests)
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.startsWith(name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
     </script>
 </body>
 
