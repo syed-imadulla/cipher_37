@@ -835,256 +835,196 @@
             const switchToScanBtn = document.getElementById('switchToScanBtn');
 
             const barcodeInput = document.getElementById('barcodeNumber');
+            const productCategory = document.getElementById('productCategory');
 
-            // Open Food Facts API Integration - Fixed data parsing
+            // Add pet food categories to the dropdown
+            function initializeCategories() {
+                // Add pet food categories if they don't exist
+                const existingOptions = Array.from(productCategory.options).map(opt => opt.value);
+
+                if (!existingOptions.includes('pet-food-dry')) {
+                    const petFoodGroup = document.createElement('optgroup');
+                    petFoodGroup.label = 'Pet Food';
+
+                    const dryFood = new Option('Dry Pet Food', 'pet-food-dry');
+                    const wetFood = new Option('Wet Pet Food', 'pet-food-wet');
+                    const treats = new Option('Pet Treats', 'pet-treats');
+                    const supplies = new Option('Pet Supplies', 'pet-supplies');
+
+                    petFoodGroup.appendChild(dryFood);
+                    petFoodGroup.appendChild(wetFood);
+                    petFoodGroup.appendChild(treats);
+                    petFoodGroup.appendChild(supplies);
+
+                    productCategory.appendChild(petFoodGroup);
+                }
+            }
+
+            // Initialize categories on load
+            initializeCategories();
+
+            // Simple API Integration - Fixed version
             const productApis = {
-                // Primary: Open Food Facts
+                // Try Open Food Facts (human food)
                 openFoodFacts: async (barcode) => {
                     try {
-                        setStatus('info', '<i class="fas fa-spinner fa-spin"></i><span>Searching Open Food Facts database...</span>');
-
+                        console.log('Searching Open Food Facts for:', barcode);
                         const apiUrl = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
 
                         const response = await fetch(apiUrl);
+                        if (!response.ok) throw new Error('API not available');
+
                         const data = await response.json();
+                        console.log('Open Food Facts API Response:', data);
 
                         if (data.status === 1 && data.product) {
                             const product = data.product;
-
-                            // Get the most common fields
-                            const name = product.product_name || product.product_name_en || '';
-                            const brand = product.brands || product.brand_owner || '';
-                            const category = product.categories || '';
-
                             return {
-                                name: name,
-                                brand: brand,
-                                category: category,
-                                description: `Product from ${brand}`,
-                                weight: null,
+                                name: product.product_name || product.product_name_en || '',
+                                brand: product.brands || '',
+                                category: product.categories || '',
+                                description: `Brand: ${product.brands || 'Unknown'} | ${product.quantity || ''}`,
+                                weight: extractWeightFromText(product.quantity),
                                 dimensions: '',
                                 ingredients: product.ingredients_text || '',
                                 success: true,
-                                source: 'Open Food Facts'
+                                source: 'Open Food Facts',
+                                type: 'human-food'
                             };
                         }
                         return { success: false, error: 'Product not found' };
                     } catch (error) {
-                        return { success: false, error: 'Network error' };
+                        console.error('Open Food Facts error:', error);
+                        return { success: false, error: error.message };
                     }
                 },
 
-                // Extract the best available product name
-                extractBestName: function (product) {
-                    // Priority order for product names
-                    if (product.product_name) return product.product_name;
-                    if (product.product_name_en) return product.product_name_en;
-                    if (product.product_name_fr) return product.product_name_fr;
-                    if (product.product_name_de) return product.product_name_de;
-                    if (product.product_name_es) return product.product_name_es;
+                // Try Open Pet Food Facts
+                openPetFoodFacts: async (barcode) => {
+                    try {
+                        console.log('Searching Open Pet Food Facts for:', barcode);
+                        const apiUrl = `https://world.openpetfoodfacts.org/api/v0/product/${barcode}.json`;
 
-                    // Check for any language variant
-                    for (const key in product) {
-                        if (key.startsWith('product_name_') && product[key]) {
-                            return product[key];
+                        const response = await fetch(apiUrl);
+                        if (!response.ok) throw new Error('API not available');
+
+                        const data = await response.json();
+                        console.log('Open Pet Food Facts API Response:', data);
+
+                        if (data.status === 1 && data.product) {
+                            const product = data.product;
+                            return {
+                                name: product.product_name || product.product_name_en || '',
+                                brand: product.brands || '',
+                                category: 'pet-food-dry', // Default to dry pet food
+                                description: `Pet Food | Brand: ${product.brands || 'Unknown'} | ${product.quantity || ''}`,
+                                weight: extractWeightFromText(product.quantity),
+                                dimensions: '',
+                                ingredients: product.ingredients_text || '',
+                                success: true,
+                                source: 'Open Pet Food Facts',
+                                type: 'pet-food'
+                            };
                         }
+                        return { success: false, error: 'Product not found' };
+                    } catch (error) {
+                        console.error('Open Pet Food Facts error:', error);
+                        return { success: false, error: error.message };
                     }
-
-                    return product.generic_name || product.abbreviated_product_name || '';
                 },
 
-                // Extract the best available brand
-                extractBestBrand: function (product) {
-                    if (product.brands) return product.brands;
-                    if (product.brand_owner) return product.brand_owner;
-                    if (product.manufacturer) return product.manufacturer;
+                // Simple fallback
+                smartFallback: async (barcode) => {
+                    await new Promise(resolve => setTimeout(resolve, 500));
 
-                    return '';
-                },
+                    // Simple barcode pattern detection
+                    let category = 'other';
+                    let name = 'Generic Product';
+                    let brand = 'Unknown Brand';
 
-                // Extract the best available category
-                extractBestCategory: function (product) {
-                    if (product.categories) return product.categories;
-                    if (product.categories_tags && product.categories_tags.length > 0) {
-                        return product.categories_tags[0].replace('en:', '');
+                    if (barcode.startsWith('00')) {
+                        category = 'food';
+                        name = 'Food Item';
+                        brand = 'Food Brand';
+                    } else if (barcode.startsWith('06') || barcode.startsWith('07')) {
+                        category = 'pet-food-dry';
+                        name = 'Pet Food';
+                        brand = 'Pet Brand';
                     }
-                    return '';
-                },
-
-                // Generate intelligent description from product data
-                generateDescription: function (product) {
-                    const parts = [];
-
-                    const brand = this.extractBestBrand(product);
-                    if (brand) parts.push(`Brand: ${brand}`);
-
-                    if (product.quantity) parts.push(`Size: ${product.quantity}`);
-                    if (product.packaging) parts.push(`Packaging: ${product.packaging}`);
-                    if (product.countries) parts.push(`Countries: ${product.countries}`);
-
-                    // Add nutrition info if available
-                    if (product.nutriscore_grade) {
-                        parts.push(`Nutri-Score: ${product.nutriscore_grade.toUpperCase()}`);
-                    }
-                    if (product.ecoscore_score) {
-                        parts.push(`Eco-Score: ${product.ecoscore_score}/100`);
-                    }
-
-                    // Add generic name if available
-                    if (product.generic_name) {
-                        parts.push(`Type: ${product.generic_name}`);
-                    }
-
-                    return parts.length > 0 ? parts.join(' • ') : 'Product information from Open Food Facts';
-                },
-
-                // Extract weight from quantity field
-                extractWeight: function (quantity) {
-                    if (!quantity) return null;
-
-                    // Common weight patterns
-                    const weightPatterns = [
-                        /(\d+(?:\.\d+)?)\s*kg/i,
-                        /(\d+(?:\.\d+)?)\s*k\s*g/i,
-                        /(\d+(?:\.\d+)?)\s*g/i,
-                        /(\d+(?:\.\d+)?)\s*grams/i,
-                        /(\d+(?:\.\d+)?)\s*ml/i,
-                        /(\d+(?:\.\d+)?)\s*l/i,
-                        /(\d+(?:\.\d+)?)\s*liters/i
-                    ];
-
-                    for (const pattern of weightPatterns) {
-                        const match = quantity.match(pattern);
-                        if (match) {
-                            let weight = parseFloat(match[1]);
-
-                            // Convert to kg if needed
-                            if (pattern.toString().includes('g') && !pattern.toString().includes('kg')) {
-                                weight = weight / 1000; // Convert grams to kg
-                            } else if (pattern.toString().includes('ml')) {
-                                weight = weight / 1000; // Convert ml to liters (approximate as kg)
-                            }
-
-                            return parseFloat(weight.toFixed(3));
-                        }
-                    }
-
-                    return null;
-                },
-
-                // Fallback: Smart product data generator based on barcode patterns
-                smartFallback: async function (barcode) {
-                    await new Promise(resolve => setTimeout(resolve, 800));
-
-                    const cleanBarcode = barcode.replace(/\D/g, '');
-                    const barcodeLength = cleanBarcode.length;
-
-                    // Determine product type based on barcode patterns
-                    const productType = this.inferProductType(cleanBarcode);
 
                     return {
-                        name: `${productType.name} ${cleanBarcode.substring(cleanBarcode.length - 4)}`,
-                        brand: this.inferBrand(cleanBarcode),
-                        category: productType.category,
-                        description: `Generic ${productType.category} product. Barcode: ${barcode}`,
-                        weight: productType.typicalWeight,
-                        dimensions: productType.typicalDimensions,
+                        name: `${name} ${barcode.slice(-4)}`,
+                        brand: brand,
+                        category: category,
+                        description: `Generic ${category} product`,
+                        weight: 0.5,
+                        dimensions: '',
                         ingredients: '',
                         success: true,
-                        source: 'Smart Inference'
+                        source: 'Smart Inference',
+                        type: category.includes('pet') ? 'pet-food' : 'human-food'
                     };
-                },
-
-                // Infer product type from barcode patterns
-                inferProductType: function (barcode) {
-                    // GS1 prefix patterns (simplified)
-                    const patterns = {
-                        // Food items often start with 0-1 (UPC/EAN)
-                        '0': { category: 'food', name: 'Food Product', typicalWeight: 0.5, typicalDimensions: '15×10×5 cm' },
-                        '1': { category: 'food', name: 'Grocery Item', typicalWeight: 0.4, typicalDimensions: '12×8×4 cm' },
-                        // Books start with 978-979
-                        '978': { category: 'books', name: 'Book', typicalWeight: 0.3, typicalDimensions: '21×15×2 cm' },
-                        '979': { category: 'books', name: 'Publication', typicalWeight: 0.25, typicalDimensions: '20×14×1 cm' },
-                        // General merchandise
-                        '2': { category: 'general', name: 'Consumer Product', typicalWeight: 0.2, typicalDimensions: '10×5×3 cm' },
-                        '3': { category: 'health', name: 'Health Product', typicalWeight: 0.15, typicalDimensions: '8×4×2 cm' },
-                        '4': { category: 'food', name: 'Food Item', typicalWeight: 0.3, typicalDimensions: '12×8×4 cm' },
-                        '5': { category: 'food', name: 'Coupon', typicalWeight: 0.01, typicalDimensions: '8×4×0.1 cm' },
-                        '6': { category: 'general', name: 'Product', typicalWeight: 0.25, typicalDimensions: '10×6×3 cm' },
-                        '7': { category: 'general', name: 'Item', typicalWeight: 0.2, typicalDimensions: '9×5×2 cm' },
-                        '8': { category: 'general', name: 'Goods', typicalWeight: 0.3, typicalDimensions: '11×7×4 cm' },
-                        '9': { category: 'general', name: 'Merchandise', typicalWeight: 0.35, typicalDimensions: '13×9×5 cm' }
-                    };
-
-                    // Check for specific patterns first
-                    for (const [prefix, info] of Object.entries(patterns)) {
-                        if (barcode.startsWith(prefix)) {
-                            return info;
-                        }
-                    }
-
-                    // Default based on length
-                    const defaultTypes = {
-                        8: { category: 'small goods', name: 'Small Item', typicalWeight: 0.1, typicalDimensions: '6×4×2 cm' },
-                        12: { category: 'retail', name: 'Retail Product', typicalWeight: 0.3, typicalDimensions: '12×8×4 cm' },
-                        13: { category: 'standard', name: 'Standard Product', typicalWeight: 0.4, typicalDimensions: '15×10×5 cm' },
-                        14: { category: 'bulk', name: 'Bulk Product', typicalWeight: 1.5, typicalDimensions: '25×15×8 cm' }
-                    };
-
-                    return defaultTypes[barcode.length] || {
-                        category: 'other',
-                        name: 'Product',
-                        typicalWeight: 0.5,
-                        typicalDimensions: '10×10×5 cm'
-                    };
-                },
-
-                // Infer brand from barcode patterns (mock)
-                inferBrand: function (barcode) {
-                    const brandPrefixes = {
-                        '001': 'Coca-Cola',
-                        '002': 'Pepsi',
-                        '003': 'Nestle',
-                        '004': 'Unilever',
-                        '005': 'Procter & Gamble',
-                        '006': 'Kraft',
-                        '007': 'General Mills',
-                        '008': 'Kelloggs',
-                        '009': 'Mars',
-                        '010': 'Mondelez'
-                    };
-
-                    for (const [prefix, brand] of Object.entries(brandPrefixes)) {
-                        if (barcode.startsWith(prefix)) {
-                            return brand;
-                        }
-                    }
-
-                    return 'Generic Brand';
                 }
             };
 
-            // Fetch product info with Open Food Facts as primary source
+            // Helper function to extract weight
+            function extractWeightFromText(text) {
+                if (!text) return null;
+
+                // Look for weight patterns
+                const patterns = [
+                    /(\d+)\s*kg/i,
+                    /(\d+)\s*g/i,
+                    /(\d+)\s*ml/i,
+                    /(\d+)\s*l/i
+                ];
+
+                for (const pattern of patterns) {
+                    const match = text.match(pattern);
+                    if (match) {
+                        let weight = parseFloat(match[1]);
+                        // Convert to kg if needed
+                        if (pattern.toString().includes('g') && !pattern.toString().includes('kg')) {
+                            weight = weight / 1000;
+                        }
+                        return weight;
+                    }
+                }
+                return null;
+            }
+
+            // Fetch product info - tries both databases
             async function fetchProductInfo(barcode) {
                 try {
-                    // Try Open Food Facts first
-                    let productData = await productApis.openFoodFacts(barcode);
+                    setStatus('info', '<i class="fas fa-spinner fa-spin"></i><span>Searching product databases...</span>');
 
+                    let productData;
+
+                    // Try Open Food Facts first
+                    productData = await productApis.openFoodFacts(barcode);
+
+                    // If not found, try Pet Food Facts
                     if (!productData.success) {
-                        // Fallback to smart inference
-                        setStatus('info', '<i class="fas fa-spinner fa-spin"></i><span>Using smart product inference...</span>');
+                        setStatus('info', '<i class="fas fa-spinner fa-spin"></i><span>Trying pet food database...</span>');
+                        productData = await productApis.openPetFoodFacts(barcode);
+                    }
+
+                    // If still not found, use fallback
+                    if (!productData.success) {
+                        setStatus('info', '<i class="fas fa-spinner fa-spin"></i><span>Using smart inference...</span>');
                         productData = await productApis.smartFallback(barcode);
                     }
 
                     if (productData.success) {
-                        setStatus('success', `<i class="fas fa-check-circle"></i><span>Product info loaded from ${productData.source}!</span>`);
+                        setStatus('success', `<i class="fas fa-check-circle"></i><span>Product found via ${productData.source}!</span>`);
                         return productData;
                     } else {
-                        setStatus('error', `<i class="fas fa-exclamation-triangle"></i><span>${productData.error}</span>`);
+                        setStatus('error', `<i class="fas fa-exclamation-triangle"></i><span>Product not found in any database</span>`);
                         return null;
                     }
                 } catch (error) {
-                    setStatus('error', `<i class="fas fa-exclamation-triangle"></i><span>Error fetching product info: ${error.message}</span>`);
+                    console.error('Fetch error:', error);
+                    setStatus('error', `<i class="fas fa-exclamation-triangle"></i><span>Network error: ${error.message}</span>`);
                     return null;
                 }
             }
@@ -1145,14 +1085,14 @@
                     document.getElementById('productBrand').value = productData.brand || '';
 
                     // Map category properly
-                    const mappedCategory = mapCategory(productData.category);
+                    const mappedCategory = mapCategory(productData.category, productData.type);
                     document.getElementById('productCategory').value = mappedCategory;
 
                     document.getElementById('productDescription').value = productData.description || '';
                     document.getElementById('productWeight').value = productData.weight != null ? productData.weight : '';
                     document.getElementById('productDimensions').value = productData.dimensions || '';
                     document.getElementById('productIngredients').value = productData.ingredients || '';
-                    document.getElementById('supplierInfo').value = productData.stores || '';
+                    document.getElementById('supplierInfo').value = '';
 
                     // Set default pricing based on category
                     setDefaultPricing(mappedCategory);
@@ -1165,89 +1105,34 @@
                 }
             }
 
-            // Map Open Food Facts categories to your category options
-            function mapCategory(apiCategory) {
+            // Simple category mapping
+            function mapCategory(apiCategory, productType) {
                 if (!apiCategory) return 'other';
-
-                const categoryMap = {
-                    // Food categories
-                    'beverages': 'food',
-                    'dairies': 'food',
-                    'snacks': 'food',
-                    'fruits': 'food',
-                    'vegetables': 'food',
-                    'meats': 'food',
-                    'breads': 'food',
-                    'cereals': 'food',
-                    'spreads': 'food',
-                    'condiments': 'food',
-                    'drinks': 'food',
-                    'sweets': 'food',
-
-                    // Electronics
-                    'electronics': 'electronics',
-                    'computers': 'electronics',
-                    'phones': 'electronics',
-                    'appliances': 'electronics',
-
-                    // Home & Garden
-                    'cleaning-products': 'home',
-                    'gardening': 'home',
-                    'home-appliances': 'home',
-                    'kitchen': 'home',
-
-                    // Health & Beauty
-                    'cosmetics': 'beauty',
-                    'personal-care': 'beauty',
-                    'health': 'beauty',
-                    'beauty': 'beauty',
-
-                    // Sports
-                    'sports': 'sports',
-                    'fitness': 'sports',
-                    'outdoors': 'sports',
-
-                    // Books
-                    'books': 'books',
-                    'magazines': 'books',
-                    'media': 'books',
-
-                    // Clothing
-                    'clothing': 'clothing',
-                    'apparel': 'clothing',
-                    'shoes': 'clothing'
-                };
 
                 const lowerCategory = apiCategory.toLowerCase();
 
-                // Check for direct matches
-                for (const [key, value] of Object.entries(categoryMap)) {
-                    if (lowerCategory.includes(key)) {
-                        return value;
-                    }
+                // Pet food categories
+                if (productType === 'pet-food') {
+                    if (lowerCategory.includes('dry') || lowerCategory.includes('kibble')) return 'pet-food-dry';
+                    if (lowerCategory.includes('wet') || lowerCategory.includes('canned')) return 'pet-food-wet';
+                    if (lowerCategory.includes('treat') || lowerCategory.includes('snack')) return 'pet-treats';
+                    return 'pet-supplies';
                 }
 
-                // Check for keyword matches
-                if (lowerCategory.includes('food') || lowerCategory.includes('beverage') || lowerCategory.includes('grocery') || lowerCategory.includes('snack')) {
-                    return 'food';
-                } else if (lowerCategory.includes('electronic') || lowerCategory.includes('computer') || lowerCategory.includes('phone') || lowerCategory.includes('tech')) {
-                    return 'electronics';
-                } else if (lowerCategory.includes('home') || lowerCategory.includes('garden') || lowerCategory.includes('cleaning') || lowerCategory.includes('kitchen')) {
-                    return 'home';
-                } else if (lowerCategory.includes('beauty') || lowerCategory.includes('cosmetic') || lowerCategory.includes('personal') || lowerCategory.includes('health')) {
-                    return 'beauty';
-                } else if (lowerCategory.includes('sport') || lowerCategory.includes('fitness') || lowerCategory.includes('outdoor')) {
-                    return 'sports';
-                } else if (lowerCategory.includes('book') || lowerCategory.includes('magazine') || lowerCategory.includes('media')) {
-                    return 'books';
-                } else if (lowerCategory.includes('cloth') || lowerCategory.includes('apparel') || lowerCategory.includes('wear')) {
-                    return 'clothing';
-                }
+                // Human food categories
+                if (lowerCategory.includes('beverage') || lowerCategory.includes('drink')) return 'food';
+                if (lowerCategory.includes('snack') || lowerCategory.includes('food')) return 'food';
+                if (lowerCategory.includes('electronic')) return 'electronics';
+                if (lowerCategory.includes('beauty') || lowerCategory.includes('cosmetic')) return 'beauty';
+                if (lowerCategory.includes('sport')) return 'sports';
+                if (lowerCategory.includes('book')) return 'books';
+                if (lowerCategory.includes('cloth')) return 'clothing';
+                if (lowerCategory.includes('home') || lowerCategory.includes('garden')) return 'home';
 
                 return 'other';
             }
 
-            // Set default pricing based on category
+            // Set default pricing
             function setDefaultPricing(category) {
                 const priceMap = {
                     'electronics': { cost: 45.00, selling: 89.99 },
@@ -1257,6 +1142,10 @@
                     'sports': { cost: 22.00, selling: 39.99 },
                     'beauty': { cost: 6.50, selling: 12.99 },
                     'books': { cost: 5.00, selling: 9.99 },
+                    'pet-food-dry': { cost: 25.00, selling: 49.99 },
+                    'pet-food-wet': { cost: 15.00, selling: 29.99 },
+                    'pet-treats': { cost: 8.00, selling: 15.99 },
+                    'pet-supplies': { cost: 12.00, selling: 24.99 },
                     'other': { cost: 10.00, selling: 19.99 }
                 };
 
@@ -1318,15 +1207,15 @@
                     console.warn('Quagga not present. Simulating scan...');
                     setStatus('info', '<i class="fas fa-info-circle"></i><span>Camera not available — simulating scan.</span>');
                     setTimeout(() => {
-                        // Simulate scanning common barcodes that exist in Open Food Facts
-                        const mockBarcodes = [
-                            '3017620422003', // Ferrero Rocher
-                            '5449000000996', // Coca Cola
-                            '7613034626844', // Nestle Nescafe
-                            '5000159459222', // Walkers Crisps
-                            '8715700162633'  // Food product
+                        // Test with known working barcodes
+                        const testBarcodes = [
+                            '5449000000996', // Coca Cola - works in Open Food Facts
+                            '3017620422003', // Ferrero Rocher - works in Open Food Facts  
+                            '7613034626844', // Nescafe - works in Open Food Facts
+                            '0611313000202', // Purina Dog Chow - should work in Pet Food Facts
+                            '5000159459222'  // Walkers Crisps - works in Open Food Facts
                         ];
-                        const rand = mockBarcodes[Math.floor(Math.random() * mockBarcodes.length)];
+                        const rand = testBarcodes[Math.floor(Math.random() * testBarcodes.length)];
                         window.dispatchEvent(new CustomEvent('barcodeScanned', { detail: { code: rand } }));
                     }, 900);
                     return;
@@ -1410,7 +1299,7 @@
                 switchToScanMode();
             });
 
-            // Manual form submit - Save to database
+            // Manual form submit
             if (manualForm) {
                 manualForm.addEventListener('submit', async (ev) => {
                     ev.preventDefault();
@@ -1461,22 +1350,16 @@
             async function saveProductToDatabase(productData) {
                 return new Promise((resolve, reject) => {
                     try {
-                        // Get existing products from localStorage
                         const existingProducts = JSON.parse(localStorage.getItem('products') || '{}');
-
-                        // Generate product ID
                         const productId = 'prod_' + Date.now();
 
-                        // Add product to database
                         existingProducts[productId] = {
                             id: productId,
                             ...productData
                         };
 
-                        // Save back to localStorage
                         localStorage.setItem('products', JSON.stringify(existingProducts));
-
-                        console.log('Product saved to database:', productData);
+                        console.log('Product saved:', productData);
                         resolve(productId);
                     } catch (error) {
                         reject(error);

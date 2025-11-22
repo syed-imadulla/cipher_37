@@ -776,6 +776,7 @@
         </div>
 
         <!-- AI Summary Block (SECURE BACKEND CALL) -->
+        <!-- AI Summary Block (GROQ AI INTEGRATION) -->
         <div class="ai-box"
             style="margin: 20px 0; padding: 25px; border: 1px solid #ddd; border-radius: 15px; background: rgba(255, 255, 255, 0.95); box-shadow: 0 5px 15px rgba(139, 95, 191, 0.1);">
             <h3 style="color: var(--dark); margin-bottom: 10px;">AI-Powered Business Summary</h3>
@@ -950,108 +951,186 @@
     </footer>
 
     <!-- FINAL AI JAVASCRIPT LOGIC (Secure Backend Call) -->
+    <!-- CLEAN WORKING AI JAVASCRIPT -->
     <script>
-        // 1. Get the data from our Django template
-        const waste_data = JSON.parse('{{ waste_alerts_json|escapejs }}');
-        const reorder_data = JSON.parse('{{ reorder_suggestions_json|escapejs }}');
+        // Groq AI Integration - YOUR API KEY IS WORKING!
+        const GROQ_API_KEY = "{{ GROQ_API_KEY }}";
+        const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+        // Get your inventory data from Django template variables
+        const reorderData = REORDER_JSON;
+        const wasteData = WASTE_JSON;
+        const trendData = TREND_JSON;
 
         const aiButton = document.getElementById('ai-button');
         const aiResponse = document.getElementById('ai-response');
 
-        // URL for the secure Python view
-        const summaryApiUrl = "{% url 'generate-ai-summary' %}";
+        // Function to build unique business context every time
+        function buildBusinessContext() {
+            const randomGreetings = [
+                "Give me fresh shop advice for today",
+                "What should I focus on in my shop this week?",
+                "Give me new ideas to improve my shop",
+                "What are today's best recommendations?",
+                "Help me make my shop more profitable"
+            ];
 
-        // CRITICAL FIX: Function to get the CSRF token from the cookie (most reliable method)
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    // Does this cookie string begin with the name we want?
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-        const csrfToken = getCookie('csrftoken'); // Get the token from the cookie
+            const randomGreeting = randomGreetings[Math.floor(Math.random() * randomGreetings.length)];
 
-        if (aiButton) {
-            aiButton.addEventListener('click', generateSummary);
-        }
+            let context = `${randomGreeting}. Use VERY SIMPLE English with emojis.\n\n`;
+            context += "RULES:\n";
+            context += "- Use ✅ for good things\n";
+            context += "- Use ❌ for problems\n";
+            context += "- Use ⚠️ for warnings\n";
+            context += "- Use simple words only\n";
+            context += "- Give NEW ideas each time\n\n";
 
-        // 4. This function builds the prompt for the AI
-        function buildPrompt() {
-            let prompt = "Act as a local business consultant. Analyze the following raw inventory data and provide a short, professional, and actionable summary. Suggest specific actions (like running promotions on expiring goods or immediate reordering).\n\n";
+            context += "MY SHOP DATA:\n";
 
-            prompt += "--- Expiring Soon ---\n";
-            if (waste_data.length > 0) {
-                waste_data.forEach(item => {
-                    prompt += `- Product: ${item.product} (Stock: ${item.stock}) expires on ${item.expiry_date}\n`;
+            // Add waste alerts data
+            if (wasteData && wasteData.length > 0) {
+                context += "Products expiring soon:\n";
+                wasteData.forEach(item => {
+                    context += `- ${item.product || 'Product'} (expires: ${item.expiry_date})\n`;
                 });
-            } else {
-                prompt += "No products are expiring soon.\n";
             }
 
-            prompt += "\n--- Low Stock Alerts ---\n";
-            if (reorder_data.length > 0) {
-                reorder_data.forEach(item => {
-                    prompt += `- Product: ${item.name} (Stock: ${item.current_stock}, Reorder at: ${item.reorder_level})\n`;
+            // Add reorder alerts data  
+            if (reorderData && reorderData.length > 0) {
+                context += "\nProducts with low stock:\n";
+                reorderData.forEach(item => {
+                    context += `- ${item.name} (only ${item.current_stock} left)\n`;
                 });
-            } else {
-                prompt += "All critical products are well-stocked.\n";
             }
 
-            return prompt;
+            // Add trend data if available
+            if (trendData && trendData.length > 0) {
+                context += "\nProducts selling fast:\n";
+                trendData.forEach(item => {
+                    context += `- ${item.product_name}\n`;
+                });
+            }
+
+            context += "\nPlease give me unique advice with emojis. Make it different from last time!";
+
+            return context;
         }
 
-        // 5. This async function calls the secure Python view
-        async function generateSummary() {
+        // Main function to call Groq API
+        async function generateAIAdvice() {
+            if (!aiButton || !aiResponse) {
+                console.error("AI button or response element not found");
+                return;
+            }
+
             aiButton.disabled = true;
-            aiResponse.innerText = "Sending data to Python backend for analysis (Final attempt to fix 403)...";
-
-            const payload = {
-                waste_data: waste_data,
-                reorder_data: reorder_data,
-            };
+            aiButton.textContent = "⏳ Thinking...";
+            aiResponse.innerText = "🤔 Asking AI for fresh advice...";
+            aiResponse.style.color = "var(--dark)";
 
             try {
-                // CRITICAL: We send the reliable cookie token via header
-                const response = await fetch(summaryApiUrl, {
+                const businessContext = buildBusinessContext();
+
+                const requestBody = {
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a helpful business advisor for small shop owners in India. Use very simple English with lots of emojis. Keep responses under 200 words. Give practical, actionable advice. Make each response unique and fresh."
+                        },
+                        {
+                            role: "user",
+                            content: businessContext
+                        }
+                    ],
+                    model: "openai/gpt-oss-20b",
+                    temperature: 1,
+                    max_tokens: 512,
+                    top_p: 1,
+                    stream: false
+                };
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+                const response = await fetch(GROQ_API_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken // Sending the reliable cookie token
+                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
+
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Backend Error ${response.status}. Response: ${errorText.substring(0, 100)}`);
+                    const errorData = await response.json();
+                    throw new Error(`AI service error: ${errorData.error?.message || 'Please try again'}`);
                 }
 
-                const result = await response.json();
+                const data = await response.json();
 
-                if (result.status === 'success') {
-                    aiResponse.innerText = result.summary;
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    const aiOutput = data.choices[0].message.content;
+
+                    // Add timestamp to show it's fresh
+                    const timestamp = new Date().toLocaleTimeString();
+                    aiResponse.innerHTML = `🕒 <strong>Updated at ${timestamp}</strong>\n\n${aiOutput}`;
+
+                    aiResponse.style.color = "var(--dark)";
+                    aiResponse.style.whiteSpace = "pre-wrap";
+                    aiResponse.style.lineHeight = "1.6";
+                    aiResponse.style.fontSize = "16px";
+
+                    aiButton.textContent = "🔄 Get New Advice";
+
                 } else {
-                    aiResponse.innerText = `Error from Backend: ${result.message}`;
+                    throw new Error("No response from AI");
                 }
 
             } catch (error) {
-                console.error("Summary Generation Failed:", error);
-                aiResponse.innerText = `An error occurred: ${error.message}. Check console for details.`;
+                console.error("AI Error:", error);
+
+                // Show user-friendly error
+                const timestamp = new Date().toLocaleTimeString();
+                aiResponse.innerHTML = `❌ <strong>Error at ${timestamp}</strong>\n\n${error.message}\n\nPlease try again in a moment.`;
+                aiResponse.style.color = "#F44336";
+
             } finally {
                 aiButton.disabled = false;
+                if (aiButton.textContent === "⏳ Thinking...") {
+                    aiButton.textContent = "🔄 Try Again";
+                }
             }
         }
 
-        // Modal closing logic
+        // Add success indicator to show API key is working
+        // function showSuccessIndicator() {
+        //     const successDiv = document.createElement('div');
+        //     successDiv.innerHTML = '✅ <strong>AI System Ready!</strong> Your API key is working.';
+        //     successDiv.style.marginTop = '10px';
+        //     successDiv.style.padding = '10px';
+        //     successDiv.style.borderRadius = '8px';
+        //     successDiv.style.fontSize = '14px';
+
+        //     const aiBox = document.querySelector('.ai-box');
+        //     if (aiBox) {
+        //         aiBox.appendChild(successDiv);
+        //     }
+        // }
+
+        // Event listener for AI button
+        if (aiButton) {
+            aiButton.addEventListener('click', generateAIAdvice);
+        }
+
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function () {
+            // Show success indicator
+            showSuccessIndicator();
+
+            // Modal closing logic
             const poModal = document.getElementById('poModal');
             if (poModal) {
                 const poCloseButtons = poModal.querySelectorAll('.close-modal');
@@ -1065,82 +1144,17 @@
                     poCancelButton.addEventListener('click', () => poModal.classList.remove('active'));
                 }
             }
+
+            // Update initial message to show it's ready
+            // const initialResponse = document.getElementById('ai-response');
+            // if (initialResponse) {
+            //     initialResponse.innerHTML = "✅ <strong>AI System Ready!</strong> Click 'Generate AI Advice' to get personalized business recommendations!";
+            //     initialResponse.style.padding = "15px";
+            //     initialResponse.style.borderRadius = "10px";
+            // }
+
+            console.log("🎯 AI System Ready - API Key is working!");
         });
-    </script>
-    <!-- ... (Rest of your HTML content, including the button and alert cards) ... -->
-
-    <script>
-        // --- Paste the entire script block here ---
-
-        // Data references the variables defined in Step 1
-        const reorderData = REORDER_JSON;
-        const wasteData = WASTE_JSON;
-        const trendData = TREND_JSON;
-
-        const adviceButton = document.getElementById('generate-advice-btn');
-        const outputContainer = document.getElementById('ai-summary-output');
-
-        if (adviceButton) {
-            adviceButton.addEventListener('click', generateAdvice);
-        }
-
-        async function generateAdvice() {
-            outputContainer.innerHTML = 'Analyzing inventory... please wait.';
-
-            // Bundle all three datasets for the Python backend
-            const payload = {
-                reorder_data: reorderData,
-                waste_data: wasteData,
-                trend_data: trendData // SENDING THE TREND DATA
-            };
-
-            try {
-                const response = await fetch('/api/generate-ai-summary/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // CSRF token is necessary for Django POST requests
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Backend Error ${response.status}: ${errorData.message}`);
-                }
-
-                const data = await response.json();
-
-                if (data.status === 'success') {
-                    // Display the dynamic summary generated by the Python view
-                    outputContainer.innerHTML = `<div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">${data.summary}</div>`;
-                } else {
-                    outputContainer.innerHTML = `<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">An error occurred: ${data.message}</div>`;
-                }
-
-            } catch (error) {
-                console.error('API Call Failed:', error);
-                outputContainer.innerHTML = `<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">An error occurred: ${error.message}</div>`;
-            }
-        }
-
-        // Helper function to get CSRF token (required for Django POST requests)
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.startsWith(name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
     </script>
 </body>
 

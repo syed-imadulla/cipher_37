@@ -19,7 +19,7 @@ urlpatterns = [
     # In APP/urls.py replace the sell_product-related lines with:
     path('sell_product/', views.sell_product_list, name='sell-product-list'),
     
-    path('sell_product/<int:product_>/', views.sell_product, name='sell-product-page'),
+    path('sell_product/<int:product_id>/', views.sell_product, name='sell-product-page'),
 
 
     path('add_product/', views.add_product, name='add_product-page'),   
