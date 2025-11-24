@@ -1106,20 +1106,20 @@
         }
 
         // Add success indicator to show API key is working
-        // function showSuccessIndicator() {
-        //     const successDiv = document.createElement('div');
-        //     successDiv.innerHTML = '✅ <strong>AI System Ready!</strong> Your API key is working.';
-        //     successDiv.style.marginTop = '10px';
-        //     successDiv.style.padding = '10px';
-        //     successDiv.style.backgroundColor = 'var(--pastel-green)';
-        //     successDiv.style.borderRadius = '8px';
-        //     successDiv.style.fontSize = '14px';
+        function showSuccessIndicator() {
+            const successDiv = document.createElement('div');
+            successDiv.innerHTML = '✅ <strong>AI System Ready!</strong> Your API key is working.';
+            successDiv.style.marginTop = '10px';
+            successDiv.style.padding = '10px';
+            // successDiv.style.backgroundColor = 'var(--pastel-green)';
+            successDiv.style.borderRadius = '8px';
+            successDiv.style.fontSize = '14px';
 
-        //     const aiBox = document.querySelector('.ai-box');
-        //     if (aiBox) {
-        //         aiBox.appendChild(successDiv);
-        //     }
-        // }
+            const aiBox = document.querySelector('.ai-box');
+            if (aiBox) {
+                aiBox.appendChild(successDiv);
+            }
+        }
 
         // Event listener for AI button
         if (aiButton) {
